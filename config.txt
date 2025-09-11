@@ -1,7 +1,5 @@
 # w-sub 配置文件
 # 节点源URL列表，每行一个
-SOURCES=https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt
-SOURCES=https://raw.githubusercontent.com/MahsaNetConfigTopic/config/refs/heads/main/xray_final.txt
 SOURCES=https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/V2Ray-Config-By-EbraSha.txt
 SOURCES=https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt
 SOURCES=https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/refs/heads/main/subscriptions/v2ray/super-sub.txt
@@ -38,3 +36,4 @@ PING_TIMEOUT=3
 # 每个节点测试次数
 
 TEST_COUNT=3
+
