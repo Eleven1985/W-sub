@@ -1,0 +1,25 @@
+# w-sub 配置文件
+# 节点源URL列表，每行一个
+SOURCES=https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt
+SOURCES=https://raw.githubusercontent.com/MahsaNetConfigTopic/config/refs/heads/main/xray_final.txt
+
+# 保留的最大节点数
+MAX_NODES=100
+
+# 请求超时时间（秒）
+TIMEOUT=5
+
+# 输出文件名 - 所有节点
+OUTPUT_ALL_FILE=subscription_all.txt
+
+# 输出文件名 - 速度最快节点
+OUTPUT_BEST_FILE=subscription_best.txt
+
+# 并发工作线程数
+WORKERS=10
+
+# 延迟测试超时时间（秒）
+PING_TIMEOUT=3
+
+# 每个节点测试次数
+TEST_COUNT=3
