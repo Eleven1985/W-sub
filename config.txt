@@ -28,22 +28,10 @@ WORKERS=10
 MAX_RETRY=2
 
 # 是否使用国家代码
-USE_COUNTRY_CODE=true
-
-# 是否添加云服务商信息
-APPEND_PROVIDER=true
-
-# 延迟测试超时时间（秒）
-PING_TIMEOUT=3
-
-# 每个节点测试次数
-TEST_COUNT=3
-
-# 最小有效节点数
-MIN_VALID_NODES=10
+USE_COUNTRY_CODE=false
 
 # 是否按国家生成文件
-GENERATE_COUNTRY_FILES=true
+GENERATE_COUNTRY_FILES=false
 
 # 每个国家文件的最小节点数
 MIN_NODES_PER_COUNTRY=5
