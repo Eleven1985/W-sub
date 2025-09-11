@@ -5,9 +5,8 @@ w-sub - 节点订阅汇总工具
 功能：
 1. 从指定URL获取节点配置
 2. 合并多个源的节点
-3. 测试节点延迟，按延迟速度排序
+3. 识别节点国家归属地并添加国家简称
 4. 生成一个订阅文件：包含所有节点
-5. 更新README.md显示按延迟排序的节点信息
 """
 import os
 import re
@@ -34,20 +33,68 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# 国家代码映射（常用国家和地区）
+COUNTRY_CODE_MAP = {
+    'jp': 'JP',  # 日本
+    'japan': 'JP',
+    'us': 'US',  # 美国
+    'united states': 'US',
+    'sg': 'SG',  # 新加坡
+    'singapore': 'SG',
+    'hk': 'HK',  # 香港
+    'hong kong': 'HK',
+    'tw': 'TW',  # 台湾
+    'taiwan': 'TW',
+    'kr': 'KR',  # 韩国
+    'korea': 'KR',
+    'de': 'DE',  # 德国
+    'germany': 'DE',
+    'uk': 'UK',  # 英国
+    'united kingdom': 'UK',
+    'ca': 'CA',  # 加拿大
+    'canada': 'CA',
+    'au': 'AU',  # 澳大利亚
+    'australia': 'AU',
+    'fr': 'FR',  # 法国
+    'france': 'FR',
+    'nl': 'NL',  # 荷兰
+    'netherlands': 'NL',
+    'ru': 'RU',  # 俄罗斯
+    'russia': 'RU',
+    'in': 'IN',  # 印度
+    'india': 'IN',
+    'th': 'TH',  # 泰国
+    'thailand': 'TH',
+    'vn': 'VN',  # 越南
+    'vietnam': 'VN',
+    'id': 'ID',  # 印度尼西亚
+    'indonesia': 'ID'
+}
+
+# 常用数据中心/云服务提供商识别
+DATA_CENTER_KEYWORDS = {
+    'aws': ['amazon', 'aws', 'ec2'],
+    'azure': ['azure', 'microsoft'],
+    'gcp': ['google', 'gcp', 'compute'],
+    'alibaba': ['aliyun', 'alibaba', 'alicloud'],
+    'tencent': ['tencent', 'qcloud'],
+    'baidu': ['baidu', 'bce'],
+    'digitalocean': ['digitalocean', 'do'],
+    'linode': ['linode']
+}
+
 class ConfigLoader:
     """配置加载器，从配置文件读取设置"""
     @staticmethod
     def load_config(config_file="config.txt"):
         config = {
             "SOURCES": [],
-            "MAX_NODES": 100,
             "TIMEOUT": 5,
             "OUTPUT_ALL_FILE": "subscription_all.txt",
             "WORKERS": 10,
-            "PING_TIMEOUT": 3,
-            "TEST_COUNT": 3,
-            "MIN_VALID_NODES": 10,  # 最小有效节点数
-            "MAX_RETRY": 2  # 获取节点源的重试次数
+            "MAX_RETRY": 2,  # 获取节点源的重试次数
+            "USE_COUNTRY_CODE": True,  # 是否使用国家代码
+            "APPEND_PROVIDER": True  # 是否添加云服务商信息
         }
         
         try:
@@ -68,14 +115,16 @@ class ConfigLoader:
                             config[key].append(value)
                         elif key in config:
                             # 根据配置项类型转换值
-                            if key in ["MAX_NODES", "TIMEOUT", "WORKERS", "PING_TIMEOUT", "TEST_COUNT", "MIN_VALID_NODES", "MAX_RETRY"]:
+                            if key in ["TIMEOUT", "WORKERS", "MAX_RETRY"]:
                                 try:
                                     config[key] = int(value)
                                 except ValueError:
                                     logger.warning(f"配置项 {key} 的值 {value} 不是有效的数字，使用默认值 {config[key]}")
+                            elif key in ["USE_COUNTRY_CODE", "APPEND_PROVIDER"]:
+                                config[key] = value.lower() in ('true', 'yes', '1')
                             else:
                                 config[key] = value
-            
+                
             logger.info(f"成功加载配置，共 {len(config['SOURCES'])} 个节点源")
             return config
         except Exception as e:
@@ -87,7 +136,6 @@ class NodeProcessor:
     def __init__(self, config):
         self.config = config
         self.nodes = []
-        self.node_latencies = {}
         self.valid_nodes_count = 0
         self.failed_nodes_count = 0
         self.debug_info = []
@@ -189,7 +237,7 @@ class NodeProcessor:
                     break
             else:
                 # 不是以已知前缀开头，返回基本信息
-                return "Unknown", "Unknown", node[:30] + ("..." if len(node) > 30 else "")
+                return "Unknown", "Unknown", node
             
             # 尝试解码节点内容
             try:
@@ -209,7 +257,9 @@ class NodeProcessor:
                         address = vmess_data.get('add', 'Unknown')
                         port = vmess_data.get('port', 'Unknown')
                         server_info = f"{address}:{port}"
-                        return node_type, server_info, node[:30] + "..."
+                        # 尝试从ps字段获取节点名称
+                        ps = vmess_data.get('ps', '').strip()
+                        return node_type, server_info, ps if ps else address
                     except json.JSONDecodeError:
                         pass
                 
@@ -227,12 +277,7 @@ class NodeProcessor:
                     if ip_matches:
                         address = ip_matches[0]
                 
-                # 查找端口
-                port_matches = re.findall(r':(\d{1,5})', decoded)
-                port = port_matches[0] if port_matches else 'Unknown'
-                
-                server_info = f"{address}:{port}"
-                return node_type, server_info, node[:30] + "..."
+                return node_type, address, address
             except Exception as e:
                 logger.debug(f"解析节点内容时出错: {str(e)}")
                 # 从原始节点字符串中提取可能的地址
@@ -246,68 +291,95 @@ class NodeProcessor:
                 else:
                     address = "Unknown"
                 
-                return node_type, address, node[:30] + "..."
+                return node_type, address, address
         except Exception as e:
             logger.error(f"解析节点信息时发生错误: {str(e)}")
-            return "Unknown", "Unknown", node[:30] + ("..." if len(node) > 30 else "")
+            return "Unknown", "Unknown", node
     
-    def _test_node_latency(self, node):
-        """测试节点延迟"""
+    def _identify_country(self, address):
+        """根据节点地址识别国家"""
+        if not address or address == "Unknown":
+            return ""
+        
+        # 转为小写进行匹配
+        address_lower = address.lower()
+        
+        # 检查域名中的国家代码顶级域名
+        tld_pattern = r'\.([a-z]{2})$'
+        tld_match = re.search(tld_pattern, address_lower)
+        if tld_match:
+            tld = tld_match.group(1)
+            if tld in COUNTRY_CODE_MAP:
+                return COUNTRY_CODE_MAP[tld]
+            # 直接返回可能的国家代码（如果是2个字母）
+            if len(tld) == 2:
+                return tld.upper()
+        
+        # 检查域名或描述中的国家关键词
+        for country, code in COUNTRY_CODE_MAP.items():
+            if country in address_lower:
+                return code
+        
+        # 检查是否为云服务提供商的地址
+        provider = self._identify_provider(address_lower)
+        if provider and self.config["APPEND_PROVIDER"]:
+            return provider
+        
+        return ""
+    
+    def _identify_provider(self, address):
+        """识别云服务提供商"""
+        for provider, keywords in DATA_CENTER_KEYWORDS.items():
+            for keyword in keywords:
+                if keyword in address:
+                    return provider.upper()[:3]  # 取前3个字母作为标识
+        return ""
+    
+    def _update_node_name_with_country(self, node):
+        """更新节点名称，添加国家代码"""
+        if not self.config["USE_COUNTRY_CODE"]:
+            return node
+        
         try:
-            node_type, address, node_id = self._parse_node_info(node)
+            node_type, address, node_name = self._parse_node_info(node)
+            country_code = self._identify_country(address)
             
-            # 如果无法解析地址，跳过测试
-            if address == "Unknown" or address == "" or ':' not in address and not re.match(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', address):
-                self.debug_info.append(f"无法解析地址: {node_id} (类型: {node_type})")
-                self.failed_nodes_count += 1
-                return node, float('inf')
-            
-            # 分离主机和端口
-            try:
-                if ':' in address:
-                    host, port = address.rsplit(':', 1)
-                    port = int(port)
-                else:
-                    host = address
-                    port = 443  # 默认使用443端口
-            except:
-                host = address
-                port = 443
-            
-            # 记录调试信息
-            self.debug_info.append(f"测试节点: {node_id} (类型: {node_type}, 地址: {host}:{port})")
-            
-            latencies = []
-            for i in range(self.config["TEST_COUNT"]):
-                try:
-                    # 创建socket连接测试延迟
-                    start_time = time.time()
-                    with socket.create_connection((host, port), timeout=self.config["PING_TIMEOUT"]):
-                        latency = (time.time() - start_time) * 1000  # 转换为毫秒
-                        latencies.append(latency)
-                        self.debug_info.append(f"测试 {i+1}/{self.config['TEST_COUNT']} 成功: {latency:.2f}ms")
-                except socket.timeout:
-                    self.debug_info.append(f"测试 {i+1}/{self.config['TEST_COUNT']} 超时")
-                except Exception as e:
-                    self.debug_info.append(f"测试 {i+1}/{self.config['TEST_COUNT']} 失败: {str(e)}")
+            # 如果已经包含国家代码，不再添加
+            if country_code and not re.search(rf'\b{country_code}\b', node_name):
+                # 尝试更新vmess节点的名称
+                if node_type == 'vmess' and node.startswith('vmess://'):
+                    encoded_part = node[len('vmess://'):]
+                    # 处理可能的URL编码
+                    encoded_part = encoded_part.replace('-', '+').replace('_', '/')
+                    # 补全base64填充
+                    padding_needed = 4 - (len(encoded_part) % 4)
+                    if padding_needed < 4:
+                        encoded_part += '=' * padding_needed
+                    
+                    try:
+                        decoded = base64.b64decode(encoded_part).decode('utf-8')
+                        vmess_data = json.loads(decoded)
+                        # 更新ps字段，添加国家代码
+                        if 'ps' in vmess_data:
+                            if not re.search(rf'\b{country_code}\b', vmess_data['ps']):
+                                vmess_data['ps'] = f"[{country_code}] {vmess_data['ps']}"
+                        else:
+                            vmess_data['ps'] = f"[{country_code}] {address}"
+                        # 重新编码
+                        updated_json = json.dumps(vmess_data, ensure_ascii=False)
+                        updated_encoded = base64.b64encode(updated_json.encode('utf-8')).decode('utf-8')
+                        # 替换base64中的+和/，去掉padding
+                        updated_encoded = updated_encoded.replace('+', '-').replace('/', '_').rstrip('=')
+                        return f'vmess://{updated_encoded}'
+                    except:
+                        pass
                 
-                # 测试间隔
-                time.sleep(0.1)
-            
-            # 计算平均延迟，如果没有成功的测试结果则返回无穷大
-            if latencies:
-                avg_latency = sum(latencies) / len(latencies)
-                self.valid_nodes_count += 1
-                self.debug_info.append(f"节点测试完成: {node_id} 平均延迟 {avg_latency:.2f}ms")
-                return node, avg_latency
-            else:
-                self.failed_nodes_count += 1
-                self.debug_info.append(f"节点测试失败: {node_id} 所有测试均未成功")
-                return node, float('inf')
+                # 对于其他类型节点，我们无法直接修改名称，保持原样
+                logger.debug(f"无法更新节点名称: {node_type} 类型节点")
         except Exception as e:
-            logger.error(f"测试节点延迟时发生错误: {str(e)}")
-            self.failed_nodes_count += 1
-            return node, float('inf')
+            logger.error(f"更新节点名称时发生错误: {str(e)}")
+        
+        return node
     
     def merge_nodes(self):
         """合并所有源的节点"""
@@ -324,52 +396,16 @@ class NodeProcessor:
         # 去重
         self.nodes = list(set(all_nodes))
         logger.info(f"合并后共获取到{len(self.nodes)}个唯一节点")
-    
-    def test_all_nodes_latency(self):
-        """测试所有节点的延迟"""
-        logger.info(f"开始测试节点延迟（共{len(self.nodes)}个节点）...")
         
-        # 创建一个临时文件记录调试信息
-        debug_file = "node_test_debug.txt"
-        
-        # 分批测试节点，避免资源耗尽
-        batch_size = min(50, self.config["WORKERS"] * 3)
-        for i in range(0, len(self.nodes), batch_size):
-            batch_nodes = self.nodes[i:i+batch_size]
-            logger.info(f"测试批次 {i//batch_size + 1}/{(len(self.nodes)+batch_size-1)//batch_size} ({len(batch_nodes)}个节点)")
-            
-            with concurrent.futures.ThreadPoolExecutor(max_workers=self.config["WORKERS"]) as executor:
-                results = list(executor.map(self._test_node_latency, batch_nodes))
-            
-            # 更新延迟结果
-            for node, latency in results:
-                if latency < float('inf'):
-                    self.node_latencies[node] = latency
-            
-            # 保存调试信息
-            with open(debug_file, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(self.debug_info))
-            
-            # 避免请求过于频繁
-            if i + batch_size < len(self.nodes):
-                time.sleep(1)
-        
-        logger.info(f"延迟测试完成，成功测试{len(self.node_latencies)}个节点，失败{self.failed_nodes_count}个节点")
-        
-        # 检查有效节点数是否满足最低要求
-        if len(self.node_latencies) < self.config["MIN_VALID_NODES"]:
-            logger.warning(f"有效节点数 {len(self.node_latencies)} 低于最小要求 {self.config['MIN_VALID_NODES']}")
-    
-    def sort_nodes_by_latency(self):
-        """按延迟对节点进行排序"""
-        # 按延迟排序
-        sorted_nodes = sorted(
-            self.node_latencies.items(), 
-            key=lambda x: x[1]
-        )
-        
-        logger.info(f"按延迟排序完成，共{len(sorted_nodes)}个节点")
-        return sorted_nodes
+        # 更新节点名称，添加国家代码
+        if self.config["USE_COUNTRY_CODE"]:
+            logger.info("正在更新节点名称，添加国家代码...")
+            updated_nodes = []
+            for node in self.nodes:
+                updated_node = self._update_node_name_with_country(node)
+                updated_nodes.append(updated_node)
+            self.nodes = updated_nodes
+            logger.info("节点名称更新完成")
     
     def generate_subscription(self, nodes, output_file):
         """生成订阅文件"""
@@ -387,62 +423,6 @@ class NodeProcessor:
         
         logger.info(f"订阅已生成并保存到 {output_file}，包含{len(nodes)}个节点")
         return subscription_content
-    
-    def update_readme(self, sorted_nodes_with_latency):
-        """更新README.md文件，显示所有节点信息按延迟排序"""
-        try:
-            # 读取当前README内容
-            if not os.path.exists('README.md'):
-                logger.error("README.md文件不存在")
-                return
-                
-            with open('README.md', 'r', encoding='utf-8') as f:
-                readme_content = f.read()
-            
-            # 准备节点信息表格
-            node_table = "| 排名 | 节点类型 | 服务器地址 | 延迟(ms) | 状态 |\n|------|----------|------------|----------|------|\n"
-            for i, (node, latency) in enumerate(sorted_nodes_with_latency[:self.config["MAX_NODES"]], 1):  # 限制显示数量为MAX_NODES
-                node_type, address, _ = self._parse_node_info(node)
-                # 限制地址长度，避免表格过宽
-                display_address = address[:40] + ("..." if len(address) > 40 else "")
-                status = "✓" if latency < 1000 else "⚠️"
-                node_table += f"| {i} | {node_type} | {display_address} | {latency:.2f} | {status} |\n"
-            
-            # 添加统计信息
-            stats_info = f"""
-## 节点统计信息
-
-- 总获取节点数: {len(self.nodes)}
-- 有效节点数: {self.valid_nodes_count}
-- 无效节点数: {self.failed_nodes_count}
-- 测试成功率: {(self.valid_nodes_count/len(self.nodes)*100) if self.nodes else 0:.2f}%
-- 平均延迟: {sum(self.node_latencies.values())/len(self.node_latencies) if self.node_latencies else 0:.2f}ms
-            """
-            
-            # 更新时间
-            update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            update_info = f"\n### 最新节点状态\n\n更新时间: {update_time}\n\n本项目每6小时自动更新一次，以下是按延迟由低到高排序的节点状态：\n\n{node_table}\n{stats_info}\n\n**注意：** 所有节点已合并到 {self.config['OUTPUT_ALL_FILE']} 文件中"
-            
-            # 替换或添加节点信息部分
-            if "### 最新节点状态" in readme_content:
-                # 替换现有内容
-                readme_content = re.sub(
-                    r'### 最新节点状态.*?(?=\n## |$)', 
-                    update_info, 
-                    readme_content, 
-                    flags=re.DOTALL
-                )
-            else:
-                # 添加到文件末尾
-                readme_content += "\n" + update_info
-            
-            # 保存更新后的README
-            with open('README.md', 'w', encoding='utf-8') as f:
-                f.write(readme_content)
-            
-            logger.info("README.md已更新，显示最新节点信息")
-        except Exception as e:
-            logger.error(f"更新README.md时发生错误: {str(e)}")
 
 def main():
     logger.info("=== w-sub 节点订阅汇总工具启动 ===")
@@ -461,25 +441,8 @@ def main():
         logger.error("未能获取任何节点，请检查网络连接或源地址是否有效")
         return
     
-    # 测试节点延迟
-    processor.test_all_nodes_latency()
-    
-    # 按延迟排序节点
-    if processor.node_latencies:
-        sorted_nodes_with_latency = processor.sort_nodes_by_latency()
-        
-        # 生成包含所有节点的订阅文件（按延迟排序）
-        nodes_list = [node for node, _ in sorted_nodes_with_latency]
-        processor.generate_subscription(nodes_list, config["OUTPUT_ALL_FILE"])
-        
-        # 更新README.md显示节点信息
-        processor.update_readme(sorted_nodes_with_latency)
-    else:
-        logger.warning("未能测试出任何可用节点的延迟")
-        # 生成所有节点的订阅文件（不排序）
-        processor.generate_subscription(processor.nodes, config["OUTPUT_ALL_FILE"])
-        # 更新README
-        processor.update_readme([])
+    # 生成包含所有节点的订阅文件
+    processor.generate_subscription(processor.nodes, config["OUTPUT_ALL_FILE"])
     
     logger.info("处理完成！")
 
