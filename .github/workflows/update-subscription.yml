@@ -25,7 +25,7 @@ jobs:
         run: python w-sub.py
       
       - name: Upload debug logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # 更新到v4版本
         with:
           name: debug-logs
           path: |
