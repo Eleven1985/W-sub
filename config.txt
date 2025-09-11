@@ -2,6 +2,20 @@
 # 节点源URL列表，每行一个
 SOURCES=https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt
 SOURCES=https://raw.githubusercontent.com/MahsaNetConfigTopic/config/refs/heads/main/xray_final.txt
+SOURCES=https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/V2Ray-Config-By-EbraSha.txt
+SOURCES=https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt
+SOURCES=https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/refs/heads/main/subscriptions/v2ray/super-sub.txt
+SOURCES=https://raw.githubusercontent.com/Awmiroosen/awmirx-v2ray/refs/heads/main/blob/main/v2-sub.txt
+SOURCES=https://raw.githubusercontent.com/R3ZARAHIMI/tg-v2ray-configs-every2h/refs/heads/main/Original-Configs.txt
+SOURCES=https://raw.githubusercontent.com/xiaoji235/airport-free/refs/heads/main/v2ray.txt
+SOURCES=https://raw.githubusercontent.com/arshiacomplus/v2rayExtractor/refs/heads/main/vless.html
+SOURCES=https://raw.githubusercontent.com/ts-sf/fly/main/v2
+SOURCES=https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2
+SOURCES=https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/mixed
+SOURCES=https://raw.githubusercontent.com/arshiacomplus/v2rayExtractor/refs/heads/main/mix/sub.html
+SOURCES=https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt
+SOURCES=https://raw.githubusercontent.com/MahsaNetConfigTopic/config/refs/heads/main/xray_final.txt
+SOURCES=https://raw.githubusercontent.com/YFTree/ClashNodes/refs/heads/main/V2Ray/4.txt
 
 # 保留的最大节点数
 MAX_NODES=100
@@ -22,4 +36,5 @@ WORKERS=10
 PING_TIMEOUT=3
 
 # 每个节点测试次数
+
 TEST_COUNT=3
