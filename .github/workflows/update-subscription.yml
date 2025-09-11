@@ -35,12 +35,13 @@ jobs:
         run: |
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
-          git add subscription_all.txt
+          # 添加所有生成的文件，包括subscription_all.txt和country_files目录
+          git add subscription_all.txt country_files/
           # 检查是否有更改
           if git diff --staged --quiet;
           then
             echo "没有检测到更改，跳过提交"
           else
-            git commit -m 'Update subscription file'
+            git commit -m 'Update subscription files'
             git push
           fi
