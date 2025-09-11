@@ -42,5 +42,8 @@ TEST_COUNT=3
 # 最小有效节点数
 MIN_VALID_NODES=10
 
-# 获取节点源的重试次数
-MAX_RETRY=2
+# 是否按国家生成文件
+GENERATE_COUNTRY_FILES=true
+
+# 每个国家文件的最小节点数
+MIN_NODES_PER_COUNTRY=5

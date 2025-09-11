@@ -7,6 +7,7 @@ w-sub - 节点订阅汇总工具
 2. 合并多个源的节点
 3. 识别节点国家归属地并添加国家简称
 4. 生成一个订阅文件：包含所有节点
+5. 按国家归属地生成单独的订阅文件
 """
 import os
 import re
@@ -94,7 +95,9 @@ class ConfigLoader:
             "WORKERS": 10,
             "MAX_RETRY": 2,  # 获取节点源的重试次数
             "USE_COUNTRY_CODE": True,  # 是否使用国家代码
-            "APPEND_PROVIDER": True  # 是否添加云服务商信息
+            "APPEND_PROVIDER": True,  # 是否添加云服务商信息
+            "GENERATE_COUNTRY_FILES": True,  # 是否按国家生成文件
+            "MIN_NODES_PER_COUNTRY": 5  # 每个国家文件的最小节点数
         }
         
         try:
@@ -115,12 +118,12 @@ class ConfigLoader:
                             config[key].append(value)
                         elif key in config:
                             # 根据配置项类型转换值
-                            if key in ["TIMEOUT", "WORKERS", "MAX_RETRY"]:
+                            if key in ["TIMEOUT", "WORKERS", "MAX_RETRY", "MIN_NODES_PER_COUNTRY"]:
                                 try:
                                     config[key] = int(value)
                                 except ValueError:
                                     logger.warning(f"配置项 {key} 的值 {value} 不是有效的数字，使用默认值 {config[key]}")
-                            elif key in ["USE_COUNTRY_CODE", "APPEND_PROVIDER"]:
+                            elif key in ["USE_COUNTRY_CODE", "APPEND_PROVIDER", "GENERATE_COUNTRY_FILES"]:
                                 config[key] = value.lower() in ('true', 'yes', '1')
                             else:
                                 config[key] = value
@@ -139,6 +142,7 @@ class NodeProcessor:
         self.valid_nodes_count = 0
         self.failed_nodes_count = 0
         self.debug_info = []
+        self.nodes_by_country = {}
     
     def fetch_nodes(self, url):
         """从指定URL获取节点配置"""
@@ -407,6 +411,66 @@ class NodeProcessor:
             self.nodes = updated_nodes
             logger.info("节点名称更新完成")
     
+    def group_nodes_by_country(self):
+        """按国家分组节点"""
+        logger.info("正在按国家分组节点...")
+        self.nodes_by_country = {}
+        unknown_country_count = 0
+        
+        for node in self.nodes:
+            try:
+                _, address, _ = self._parse_node_info(node)
+                country_code = self._identify_country(address)
+                
+                if country_code:
+                    if country_code not in self.nodes_by_country:
+                        self.nodes_by_country[country_code] = []
+                    self.nodes_by_country[country_code].append(node)
+                else:
+                    unknown_country_count += 1
+            except Exception as e:
+                logger.error(f"处理节点时发生错误: {str(e)}")
+                unknown_country_count += 1
+        
+        logger.info(f"按国家分组完成，共识别到{len(self.nodes_by_country)}个国家/地区，{unknown_country_count}个节点无法识别国家")
+        return self.nodes_by_country
+    
+    def generate_country_subscriptions(self):
+        """生成各个国家的订阅文件"""
+        if not self.config["GENERATE_COUNTRY_FILES"]:
+            logger.info("未启用按国家生成文件功能，跳过此步骤")
+            return
+        
+        # 按国家分组节点
+        if not self.nodes_by_country:
+            self.group_nodes_by_country()
+        
+        # 确保国家文件夹存在
+        country_files_dir = "country_files"
+        if not os.path.exists(country_files_dir):
+            os.makedirs(country_files_dir)
+        
+        # 为每个国家生成订阅文件
+        generated_files = []
+        for country_code, country_nodes in self.nodes_by_country.items():
+            # 跳过节点数不足的国家
+            if len(country_nodes) < self.config["MIN_NODES_PER_COUNTRY"]:
+                logger.info(f"国家 {country_code} 的节点数不足 {self.config['MIN_NODES_PER_COUNTRY']} 个，跳过生成文件")
+                continue
+            
+            # 生成文件名
+            output_file = os.path.join(country_files_dir, f"{country_code}.txt")
+            
+            # 生成订阅文件
+            self.generate_subscription(country_nodes, output_file)
+            generated_files.append((country_code, output_file, len(country_nodes)))
+        
+        logger.info(f"已生成{len(generated_files)}个国家/地区的订阅文件")
+        for country_code, file_path, node_count in generated_files:
+            logger.info(f"  - {country_code}: {file_path} ({node_count}个节点)")
+        
+        return generated_files
+    
     def generate_subscription(self, nodes, output_file):
         """生成订阅文件"""
         # 将节点列表转换为字符串
@@ -443,6 +507,9 @@ def main():
     
     # 生成包含所有节点的订阅文件
     processor.generate_subscription(processor.nodes, config["OUTPUT_ALL_FILE"])
+    
+    # 生成按国家分类的订阅文件
+    processor.generate_country_subscriptions()
     
     logger.info("处理完成！")
 
