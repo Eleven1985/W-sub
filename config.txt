@@ -15,7 +15,7 @@ SOURCES=https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/con
 SOURCES=https://raw.githubusercontent.com/MahsaNetConfigTopic/config/refs/heads/main/xray_final.txt
 SOURCES=https://raw.githubusercontent.com/YFTree/ClashNodes/refs/heads/main/V2Ray/4.txt
 
-# 保留的最大节点数
+# 保留的最大节点数（用于README显示）
 MAX_NODES=100
 
 # 请求超时时间（秒）
@@ -23,9 +23,6 @@ TIMEOUT=5
 
 # 输出文件名 - 所有节点
 OUTPUT_ALL_FILE=subscription_all.txt
-
-# 输出文件名 - 速度最快节点
-OUTPUT_BEST_FILE=subscription_best.txt
 
 # 并发工作线程数
 WORKERS=10

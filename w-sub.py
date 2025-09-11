@@ -5,9 +5,9 @@ w-sub - 节点订阅汇总工具
 功能：
 1. 从指定URL获取节点配置
 2. 合并多个源的节点
-3. 测试节点延迟，筛选出速度最快的100个节点
-4. 生成两个订阅文件：全部节点和最优节点
-5. 更新README.md显示最优节点信息
+3. 测试节点延迟，按延迟速度排序
+4. 生成一个订阅文件：包含所有节点
+5. 更新README.md显示按延迟排序的节点信息
 """
 import os
 import re
@@ -43,7 +43,6 @@ class ConfigLoader:
             "MAX_NODES": 100,
             "TIMEOUT": 5,
             "OUTPUT_ALL_FILE": "subscription_all.txt",
-            "OUTPUT_BEST_FILE": "subscription_best.txt",
             "WORKERS": 10,
             "PING_TIMEOUT": 3,
             "TEST_COUNT": 3,
@@ -361,20 +360,16 @@ class NodeProcessor:
         if len(self.node_latencies) < self.config["MIN_VALID_NODES"]:
             logger.warning(f"有效节点数 {len(self.node_latencies)} 低于最小要求 {self.config['MIN_VALID_NODES']}")
     
-    def filter_fastest_nodes(self):
-        """筛选出延迟最低的节点"""
+    def sort_nodes_by_latency(self):
+        """按延迟对节点进行排序"""
         # 按延迟排序
         sorted_nodes = sorted(
             self.node_latencies.items(), 
             key=lambda x: x[1]
         )
         
-        # 保留前N个节点
-        max_nodes = min(self.config["MAX_NODES"], len(sorted_nodes))
-        fastest_nodes = [node for node, _ in sorted_nodes[:max_nodes]]
-        
-        logger.info(f"筛选出{len(fastest_nodes)}个延迟最低的节点")
-        return fastest_nodes, sorted_nodes[:max_nodes]
+        logger.info(f"按延迟排序完成，共{len(sorted_nodes)}个节点")
+        return sorted_nodes
     
     def generate_subscription(self, nodes, output_file):
         """生成订阅文件"""
@@ -394,7 +389,7 @@ class NodeProcessor:
         return subscription_content
     
     def update_readme(self, sorted_nodes_with_latency):
-        """更新README.md文件，显示最优节点信息"""
+        """更新README.md文件，显示所有节点信息按延迟排序"""
         try:
             # 读取当前README内容
             if not os.path.exists('README.md'):
@@ -406,7 +401,7 @@ class NodeProcessor:
             
             # 准备节点信息表格
             node_table = "| 排名 | 节点类型 | 服务器地址 | 延迟(ms) | 状态 |\n|------|----------|------------|----------|------|\n"
-            for i, (node, latency) in enumerate(sorted_nodes_with_latency, 1):
+            for i, (node, latency) in enumerate(sorted_nodes_with_latency[:self.config["MAX_NODES"]], 1):  # 限制显示数量为MAX_NODES
                 node_type, address, _ = self._parse_node_info(node)
                 # 限制地址长度，避免表格过宽
                 display_address = address[:40] + ("..." if len(address) > 40 else "")
@@ -426,7 +421,7 @@ class NodeProcessor:
             
             # 更新时间
             update_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            update_info = f"\n### 最新节点状态\n\n更新时间: {update_time}\n\n共测试 {len(self.node_latencies)} 个节点，筛选出以下 {len(sorted_nodes_with_latency)} 个最优节点（按延迟由低到高排序）：\n\n{node_table}\n{stats_info}\n\n**注意：** 节点状态信息与{subscription_content[:50]}...文件中的内容完全对应\n"
+            update_info = f"\n### 最新节点状态\n\n更新时间: {update_time}\n\n本项目每6小时自动更新一次，以下是按延迟由低到高排序的节点状态：\n\n{node_table}\n{stats_info}\n\n**注意：** 所有节点已合并到 {self.config['OUTPUT_ALL_FILE']} 文件中"
             
             # 替换或添加节点信息部分
             if "### 最新节点状态" in readme_content:
@@ -466,21 +461,24 @@ def main():
         logger.error("未能获取任何节点，请检查网络连接或源地址是否有效")
         return
     
-    # 生成包含所有节点的订阅文件
-    processor.generate_subscription(processor.nodes, config["OUTPUT_ALL_FILE"])
-    
-    # 测试节点延迟并生成最优节点订阅文件
+    # 测试节点延迟
     processor.test_all_nodes_latency()
     
+    # 按延迟排序节点
     if processor.node_latencies:
-        fastest_nodes, sorted_nodes_with_latency = processor.filter_fastest_nodes()
-        processor.generate_subscription(fastest_nodes, config["OUTPUT_BEST_FILE"])
+        sorted_nodes_with_latency = processor.sort_nodes_by_latency()
+        
+        # 生成包含所有节点的订阅文件（按延迟排序）
+        nodes_list = [node for node, _ in sorted_nodes_with_latency]
+        processor.generate_subscription(nodes_list, config["OUTPUT_ALL_FILE"])
         
         # 更新README.md显示节点信息
         processor.update_readme(sorted_nodes_with_latency)
     else:
         logger.warning("未能测试出任何可用节点的延迟")
-        # 即使没有有效节点，也更新README
+        # 生成所有节点的订阅文件（不排序）
+        processor.generate_subscription(processor.nodes, config["OUTPUT_ALL_FILE"])
+        # 更新README
         processor.update_readme([])
     
     logger.info("处理完成！")
