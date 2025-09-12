@@ -35,29 +35,12 @@ jobs:
         run: |
           git config --global user.name 'GitHub Actions'
           git config --global user.email 'actions@github.com'
-          # 添加所有生成的文件，包括subscription_all.txt和country_files目录
-          git add subscription_all.txt country_files/
+          # 添加生成的订阅文件
+          git add subscription_all.txt
           # 检查是否有更改
           if git diff --staged --quiet;
           then
             echo "没有检测到更改，跳过提交"
-          else
-            git commit -m 'Update subscription files'
-            git push
-          fi
-
-      # 修改后
-      # Update the Commit and push changes step to remove the country_files reference
-      - name: Commit and push changes
-        run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
-          # Only add the subscription_all.txt file since country_files/ no longer exists
-          git add subscription_all.txt
-          # Check if there are any changes
-          if git diff --staged --quiet;
-          then
-            echo "No changes detected, skipping commit"
           else
             git commit -m 'Update subscription files'
             git push
