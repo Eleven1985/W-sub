@@ -5,7 +5,6 @@ SOURCES=https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/ma
 SOURCES=https://raw.githubusercontent.com/Flikify/Free-Node/refs/heads/main/v2ray.txt
 SOURCES=https://raw.githubusercontent.com/ggborr/FREEE-VPN/refs/heads/main/8V2
 SOURCES=https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt
-SOURCES=https://raw.githubusercontent.com/xiaoji235/airport-free/refs/heads/main/v2ray.txt
 SOURCES=https://raw.githubusercontent.com/arshiacomplus/v2rayExtractor/refs/heads/main/mix/sub.html
 SOURCES=https://raw.githubusercontent.com/MahsaNetConfigTopic/config/refs/heads/main/xray_final.txt
 SOURCES=https://raw.githubusercontent.com/ashahdevs/v2ray/refs/heads/main/splitted/subscribe
@@ -36,6 +35,7 @@ GENERATE_COUNTRY_FILES=ture
 # 每个国家文件的最小节点数
 
 MIN_NODES_PER_COUNTRY=5
+
 
 
 
