@@ -8,6 +8,10 @@ SOURCES=https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2
 SOURCES=https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/mixed
 SOURCES=https://raw.githubusercontent.com/arshiacomplus/v2rayExtractor/refs/heads/main/mix/sub.html
 SOURCES=https://raw.githubusercontent.com/MahsaNetConfigTopic/config/refs/heads/main/xray_final.txt
+SOURCES=https://raw.githubusercontent.com/MahsaNetConfigTopic/config/refs/heads/main/xray_final.txt
+SOURCES=https://raw.githubusercontent.com/ashahdevs/v2ray/refs/heads/main/splitted/subscribe
+SOURCES=https://raw.githubusercontent.com/Mhdiqpzx/Mahdi-VIP/refs/heads/main/Mahdi-Vip.txt
+SOURCES=https://raw.githubusercontent.com/SonzaiEkkusu/V2RayDumper/refs/heads/main/config.txt
 
 # 请求超时时间（秒）
 TIMEOUT=5
@@ -30,4 +34,5 @@ GENERATE_COUNTRY_FILES=ture
 # 每个国家文件的最小节点数
 
 MIN_NODES_PER_COUNTRY=5
+
 
