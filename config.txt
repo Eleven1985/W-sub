@@ -2,6 +2,8 @@
 # 节点源URL列表，每行一个
 SOURCES=https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/V2Ray-Config-By-EbraSha.txt
 SOURCES=https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt
+SOURCES=https://raw.githubusercontent.com/Flikify/Free-Node/refs/heads/main/v2ray.txt
+SOURCES=https://raw.githubusercontent.com/ggborr/FREEE-VPN/refs/heads/main/8V2
 SOURCES=https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt
 SOURCES=https://raw.githubusercontent.com/xiaoji235/airport-free/refs/heads/main/v2ray.txt
 SOURCES=https://raw.githubusercontent.com/arshiacomplus/v2rayExtractor/refs/heads/main/mix/sub.html
@@ -10,6 +12,7 @@ SOURCES=https://raw.githubusercontent.com/ashahdevs/v2ray/refs/heads/main/splitt
 SOURCES=https://raw.githubusercontent.com/Mhdiqpzx/Mahdi-VIP/refs/heads/main/Mahdi-Vip.txt
 SOURCES=https://raw.githubusercontent.com/sinavm/SVM/refs/heads/main/subscriptions/xray/base64/vless
 SOURCES=https://raw.githubusercontent.com/Joker-funland/V2ray-configs/refs/heads/main/vless.txt
+SOURCES=https://raw.githubusercontent.com/itsyebekhe/PSG/refs/heads/main/subscriptions/xray/base64/vless
 SOURCES=https://raw.githubusercontent.com/SonzaiEkkusu/V2RayDumper/refs/heads/main/config.txt
 
 # 请求超时时间（秒）
@@ -33,6 +36,7 @@ GENERATE_COUNTRY_FILES=ture
 # 每个国家文件的最小节点数
 
 MIN_NODES_PER_COUNTRY=5
+
 
 
 
