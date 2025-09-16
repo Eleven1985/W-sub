@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 class ConfigLoader:
     """配置加载器，从配置文件读取设置"""
+    # 修改ConfigLoader类的load_config方法
     @staticmethod
     def load_config(config_file=None):
         config = {
@@ -50,63 +51,87 @@ class ConfigLoader:
             "TEST_TIMEOUT": 3  # 节点测试超时时间（秒）
         }
         
-        # 如果未指定配置文件路径，先尝试从configs文件夹查找
-        if config_file is None:
-            # 获取当前脚本所在目录的绝对路径
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            # 构建configs目录的绝对路径
-            configs_dir = os.path.join(script_dir, 'configs')
-            # 构建完整的配置文件路径
-            config_file_candidate = os.path.join(configs_dir, 'config.txt')
-            
-            if os.path.exists(config_file_candidate):
-                config_file = config_file_candidate
-                logger.info(f"使用配置文件: {config_file}")
-            else:
-                # 尝试当前目录下的config.txt
-                current_dir_config = os.path.join(script_dir, 'config.txt')
-                if os.path.exists(current_dir_config):
-                    config_file = current_dir_config
-                    logger.info(f"使用当前目录配置文件: {config_file}")
-                else:
-                    # 都找不到，设置为当前目录的config.txt，但会在后面的try-except中处理
-                    config_file = current_dir_config
-                    logger.warning(f"未找到配置文件，将尝试创建默认配置文件: {config_file}")
+        # 默认节点源列表（确保即使找不到配置文件也能工作）
+        DEFAULT_SOURCES = [
+            "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/V2Ray-Config-By-EbraSha.txt",
+            "https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt",
+            "https://raw.githubusercontent.com/Awmiroosen/awmirx-v2ray/refs/heads/main/blob/main/v2-sub.txt",
+            "https://raw.githubusercontent.com/Flikify/Free-Node/refs/heads/main/v2ray.txt",
+            "https://raw.githubusercontent.com/ggborr/FREEE-VPN/refs/heads/main/8V2",
+            "https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt",
+            "https://raw.githubusercontent.com/xiaoji235/airport-free/refs/heads/main/v2ray.txt",
+            "https://raw.githubusercontent.com/arshiacomplus/v2rayExtractor/refs/heads/main/mix/sub.html",
+            "https://raw.githubusercontent.com/MahsaNetConfigTopic/config/refs/heads/main/xray_final.txt",
+            "https://raw.githubusercontent.com/Mhdiqpzx/Mahdi-VIP/refs/heads/main/Mahdi-Vip.txt",
+            "https://raw.githubusercontent.com/sinavm/SVM/refs/heads/main/subscriptions/xray/base64/vless",
+            "https://raw.githubusercontent.com/Joker-funland/V2ray-configs/refs/heads/main/vless.txt",
+            "https://raw.githubusercontent.com/itsyebekhe/PSG/refs/heads/main/subscriptions/xray/base64/vless",
+            "https://raw.githubusercontent.com/SonzaiEkkusu/V2RayDumper/refs/heads/main/config.txt"
+        ]
         
-        try:
-            with open(config_file, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line = line.strip()
-                    # 忽略注释和空行
-                    if line.startswith('#') or not line:
-                        continue
-                    
-                    # 解析配置项
-                    if '=' in line:
-                        key, value = line.split('=', 1)
-                        key = key.strip()
-                        value = value.strip()
+        # 首先尝试从配置文件加载
+        config_loaded = False
+        
+        # 尝试多个可能的配置文件路径
+        possible_paths = []
+        if config_file:
+            possible_paths.append(config_file)
+        
+        # 添加当前目录和configs子目录的可能路径
+        possible_paths.extend([
+            "config.txt",
+            "configs/config.txt",
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.txt"),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs", "config.txt")
+        ])
+        
+        # 尝试所有可能的路径
+        for path in possible_paths:
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        # 忽略注释和空行
+                        if line.startswith('#') or not line:
+                            continue
                         
-                        if key == "SOURCES":
-                            config[key].append(value)
-                        elif key in config:
-                            # 根据配置项类型转换值
-                            if key in ["TIMEOUT", "WORKERS", "MAX_RETRY", "BEST_NODES_COUNT", "TEST_TIMEOUT"]:
-                                try:
-                                    config[key] = int(value)
-                                except ValueError:
-                                    logger.warning(f"配置项 {key} 的值 {value} 不是有效的数字，使用默认值 {config[key]}")
-                            else:
-                                config[key] = value
-                    # 简化格式：直接识别URL（不以#开头且不包含=号）
-                    elif re.match(r'^https?://', line):
-                        config["SOURCES"].append(line)
-        except Exception as e:
-            logger.error(f"加载配置文件失败: {str(e)}")
-            # 使用默认配置
-            logger.info("使用默认配置继续运行")
+                        # 解析配置项
+                        if '=' in line:
+                            key, value = line.split('=', 1)
+                            key = key.strip()
+                            value = value.strip()
+                            
+                            if key == "SOURCES":
+                                config[key].append(value)
+                            elif key in config:
+                                # 根据配置项类型转换值
+                                if key in ["TIMEOUT", "WORKERS", "MAX_RETRY", "BEST_NODES_COUNT", "TEST_TIMEOUT"]:
+                                    try:
+                                        config[key] = int(value)
+                                    except ValueError:
+                                        logger.warning(f"配置项 {key} 的值 {value} 不是有效的数字，使用默认值 {config[key]}")
+                                else:
+                                    config[key] = value
+                        # 简化格式：直接识别URL
+                        elif re.match(r'^https?://', line):
+                            config["SOURCES"].append(line)
+                    
+                    logger.info(f"成功加载配置文件: {path}")
+                    config_loaded = True
+                    break  # 找到并加载了配置文件，退出循环
+            except Exception as e:
+                logger.debug(f"尝试加载配置文件 {path} 失败: {str(e)}")
         
-        logger.info(f"成功加载配置文件: {config_file}")
+        # 如果没有加载到配置文件，使用默认节点源
+        if not config_loaded:
+            logger.warning("未能从配置文件加载节点源，将使用内置默认节点源")
+            config["SOURCES"] = DEFAULT_SOURCES.copy()
+        
+        # 确保至少有节点源可用
+        if not config["SOURCES"]:
+            logger.warning("配置文件中没有有效的节点源，将使用内置默认节点源")
+            config["SOURCES"] = DEFAULT_SOURCES.copy()
+        
         logger.info(f"成功加载配置，共 {len(config['SOURCES'])} 个节点源")
         return config
 
