@@ -20,6 +20,8 @@ import concurrent.futures
 from datetime import datetime
 import shutil
 
+# 导入新创建的模块
+from node_merger import NodeMerger
 # 导入节点优选工具
 from node_selector import NodeSelector
 
@@ -37,9 +39,9 @@ logger = logging.getLogger(__name__)
 
 class ConfigLoader:
     """配置加载器，从配置文件读取设置"""
-    # 修改ConfigLoader类的load_config方法
     @staticmethod
     def load_config(config_file=None):
+        """加载配置，优先使用configs/config.txt"""
         config = {
             "SOURCES": [],
             "TIMEOUT": 5,
@@ -77,58 +79,61 @@ class ConfigLoader:
         if config_file:
             possible_paths.append(config_file)
         
-        # 添加当前目录和configs子目录的可能路径
+        # 添加配置文件的可能路径，优先使用configs/config.txt
+        current_dir = os.path.dirname(os.path.abspath(__file__))
         possible_paths.extend([
-            "config.txt",
+            os.path.join(current_dir, "configs", "config.txt"),  # 优先使用configs子目录
+            os.path.join(current_dir, "config.txt"),
             "configs/config.txt",
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.txt"),
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs", "config.txt")
+            "config.txt"
         ])
         
         # 尝试所有可能的路径
         for path in possible_paths:
             try:
-                with open(path, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        line = line.strip()
-                        # 忽略注释和空行
-                        if line.startswith('#') or not line:
-                            continue
+                if os.path.exists(path):
+                    logger.info(f"尝试加载配置文件: {path}")
+                    with open(path, 'r', encoding='utf-8') as f:
+                        config["SOURCES"] = []  # 清空默认源，优先使用配置文件中的源
                         
-                        # 解析配置项
-                        if '=' in line:
-                            key, value = line.split('=', 1)
-                            key = key.strip()
-                            value = value.strip()
+                        for line in f:
+                            line = line.strip()
+                            # 忽略注释和空行
+                            if line.startswith('#') or not line:
+                                continue
                             
-                            if key == "SOURCES":
-                                config[key].append(value)
-                            elif key in config:
-                                # 根据配置项类型转换值
-                                if key in ["TIMEOUT", "WORKERS", "MAX_RETRY", "BEST_NODES_COUNT", "TEST_TIMEOUT"]:
-                                    try:
-                                        config[key] = int(value)
-                                    except ValueError:
-                                        logger.warning(f"配置项 {key} 的值 {value} 不是有效的数字，使用默认值 {config[key]}")
-                                else:
-                                    config[key] = value
-                        # 简化格式：直接识别URL
-                        elif re.match(r'^https?://', line):
-                            config["SOURCES"].append(line)
-                    
+                            # 解析配置项
+                            if '=' in line:
+                                key, value = line.split('=', 1)
+                                key = key.strip()
+                                value = value.strip()
+                                
+                                if key == "SOURCES":
+                                    config[key].append(value)
+                                elif key in config:
+                                    # 根据配置项类型转换值
+                                    if key in ["TIMEOUT", "WORKERS", "MAX_RETRY", "BEST_NODES_COUNT", "TEST_TIMEOUT"]:
+                                        try:
+                                            config[key] = int(value)
+                                        except ValueError:
+                                            logger.warning(f"配置项 {key} 的值 {value} 不是有效的数字，使用默认值 {config[key]}")
+                                    else:
+                                        config[key] = value
+                            # 简化格式：直接识别URL
+                            elif re.match(r'^https?://', line):
+                                config["SOURCES"].append(line)
+                        
                     logger.info(f"成功加载配置文件: {path}")
                     config_loaded = True
                     break  # 找到并加载了配置文件，退出循环
             except Exception as e:
-                logger.debug(f"尝试加载配置文件 {path} 失败: {str(e)}")
+                logger.error(f"尝试加载配置文件 {path} 失败: {str(e)}")
         
-        # 如果没有加载到配置文件，使用默认节点源
+        # 如果没有加载到配置文件或配置文件中没有节点源，使用默认节点源
         if not config_loaded:
             logger.warning("未能从配置文件加载节点源，将使用内置默认节点源")
             config["SOURCES"] = DEFAULT_SOURCES.copy()
-        
-        # 确保至少有节点源可用
-        if not config["SOURCES"]:
+        elif not config["SOURCES"]:
             logger.warning("配置文件中没有有效的节点源，将使用内置默认节点源")
             config["SOURCES"] = DEFAULT_SOURCES.copy()
         
@@ -146,161 +151,49 @@ class NodeProcessor:
         self.output_dir = output_dir or "subscriptions"
         # 确保输出目录存在
         self._ensure_output_dir()
+        # 添加调试信息：显示当前工作目录和输出目录的绝对路径
+        logger.debug(f"当前工作目录: {os.getcwd()}")
+        logger.debug(f"输出目录绝对路径: {os.path.abspath(self.output_dir)}")
     
     def _ensure_output_dir(self):
         """确保输出目录存在"""
-        if not os.path.exists(self.output_dir):
+        # 首先尝试使用绝对路径
+        absolute_output_dir = os.path.abspath(self.output_dir)
+        
+        # 尝试创建目录
+        try:
+            if not os.path.exists(absolute_output_dir):
+                os.makedirs(absolute_output_dir, exist_ok=True)
+                logger.info(f"已创建输出目录: {absolute_output_dir}")
+            else:
+                logger.info(f"输出目录已存在: {absolute_output_dir}")
+            # 使用绝对路径作为输出目录
+            self.output_dir = absolute_output_dir
+        except Exception as e:
+            logger.error(f"创建输出目录失败: {str(e)}")
+            # 尝试使用用户文档目录作为备选
             try:
-                os.makedirs(self.output_dir)
-                logger.info(f"已创建输出目录: {self.output_dir}")
-            except Exception as e:
-                logger.error(f"创建输出目录失败: {str(e)}")
-                # 如果创建目录失败，使用当前目录
-                self.output_dir = "."
-                logger.warning(f"将使用当前目录作为输出目录")
+                import os
+                # 获取用户文档目录
+                docs_dir = os.path.expanduser("~")
+                if os.name == 'nt':  # Windows系统
+                    docs_dir = os.path.join(docs_dir, "Documents")
+                
+                # 在文档目录下创建输出文件夹
+                fallback_dir = os.path.join(docs_dir, "w-sub-output")
+                if not os.path.exists(fallback_dir):
+                    os.makedirs(fallback_dir, exist_ok=True)
+                self.output_dir = fallback_dir
+                logger.warning(f"将使用备用目录作为输出目录: {fallback_dir}")
+            except Exception as inner_e:
+                # 最后的备选：使用当前目录
+                logger.error(f"创建备用目录也失败: {str(inner_e)}")
+                self.output_dir = os.getcwd()
+                logger.warning(f"将使用当前目录作为输出目录: {self.output_dir}")
     
     def _get_output_path(self, filename):
         """获取文件的完整输出路径"""
         return os.path.join(self.output_dir, filename)
-    
-    def fetch_nodes(self, url):
-        """从指定URL获取节点配置"""
-        retry_count = 0
-        while retry_count <= self.config["MAX_RETRY"]:
-            try:
-                logger.info(f"正在获取节点源: {url} (尝试 {retry_count+1}/{self.config['MAX_RETRY']+1})")
-                response = requests.get(url, timeout=self.config["TIMEOUT"])
-                response.encoding = 'utf-8'
-                
-                if response.status_code == 200:
-                    content = response.text
-                    
-                    # 尝试解码base64内容（多次尝试）
-                    decoded_content = self._try_decode_base64(content)
-                    
-                    # 提取节点
-                    new_nodes = self._extract_nodes(decoded_content)
-                    logger.info(f"从{url}获取到{len(new_nodes)}个节点")
-                    return new_nodes
-                else:
-                    logger.warning(f"获取{url}失败，状态码: {response.status_code}")
-            except Exception as e:
-                logger.error(f"获取{url}时发生错误: {str(e)}")
-            
-            retry_count += 1
-            if retry_count <= self.config["MAX_RETRY"]:
-                logger.info(f"{url} 获取失败，{self.config['TIMEOUT']}秒后重试...")
-                time.sleep(self.config["TIMEOUT"])
-        
-        return []
-    
-    def _try_decode_base64(self, content):
-        """智能尝试解码base64内容"""
-        try:
-            # 清理可能的换行符和空格
-            cleaned_content = content.strip().replace('\n', '').replace('\r', '')
-            original_length = len(cleaned_content)
-            
-            # 尝试多种可能的解码方式
-            # 1. 直接尝试解码
-            try:
-                decoded = base64.b64decode(cleaned_content, validate=True).decode('utf-8', errors='ignore')
-                if any(char in decoded for char in ['vmess://', 'v2ray://', 'trojan://', 'shadowsocks://', 'vless://']):
-                    logger.info(f"成功解码base64内容 (原始长度: {original_length}, 解码后长度: {len(decoded)})")
-                    return decoded
-            except:
-                pass
-            
-            # 2. 尝试不同的填充方式
-            for padding in ['', '=', '==']:
-                try:
-                    padded_content = cleaned_content + padding
-                    decoded = base64.b64decode(padded_content).decode('utf-8', errors='ignore')
-                    if any(char in decoded for char in ['vmess://', 'v2ray://', 'trojan://', 'shadowsocks://', 'vless://']):
-                        logger.info(f"成功解码base64内容(使用填充) (原始长度: {original_length})")
-                        return decoded
-                except:
-                    continue
-            
-            # 3. 尝试每4个字符一组进行解码
-            for i in range(4):
-                try:
-                    adjusted_content = cleaned_content[i:]
-                    decoded = base64.b64decode(adjusted_content).decode('utf-8', errors='ignore')
-                    if any(char in decoded for char in ['vmess://', 'v2ray://', 'trojan://', 'shadowsocks://', 'vless://']):
-                        logger.info(f"成功解码base64内容(偏移{i}) (原始长度: {original_length})")
-                        return decoded
-                except:
-                    continue
-            
-            # 4. 增强：尝试按行解码
-            lines = content.strip().split('\n')
-            if len(lines) > 1:
-                decoded_lines = []
-                for line in lines:
-                    try:
-                        decoded_line = base64.b64decode(line.strip(), validate=True).decode('utf-8', errors='ignore')
-                        decoded_lines.append(decoded_line)
-                    except:
-                        decoded_lines.append(line)
-                combined = '\n'.join(decoded_lines)
-                if any(char in combined for char in ['vmess://', 'v2ray://', 'trojan://', 'shadowsocks://', 'vless://']):
-                    logger.info(f"成功解码多行base64内容 (行数: {len(lines)})")
-                    return combined
-        except Exception as e:
-            logger.error(f"解码base64内容时发生错误: {str(e)}")
-        
-        # 解码失败，返回原始内容
-        logger.debug(f"无法解码base64内容，返回原始内容 (长度: {original_length})")
-        return content
-
-    def _extract_nodes(self, content):
-        """从内容中提取节点链接"""
-        # 支持的节点类型正则表达式
-        patterns = [
-            r'(vmess://[^\s]+)',
-            r'(v2ray://[^\s]+)',
-            r'(trojan://[^\s]+)',
-            r'(shadowsocks://[^\s]+)',
-            r'(shadowsocksr://[^\s]+)',
-            r'(vless://[^\s]+)',
-            r'(ss://[^\s]+)',
-            r'(ssr://[^\s]+)',
-            r'(trojan-go://[^\s]+)',
-            # 增强：添加更多可能的节点格式
-            r'(clash://[^\s]+)',
-            r'(sing-box://[^\s]+)',
-            r'(hysteria://[^\s]+)'
-        ]
-        
-        nodes = []
-        for pattern in patterns:
-            matches = re.findall(pattern, content, re.MULTILINE)
-            nodes.extend(matches)
-        
-        # 去重
-        unique_nodes = list(set(nodes))
-        logger.info(f"从内容中提取并去重后，得到{len(unique_nodes)}个节点 (原始提取: {len(nodes)})")
-        return unique_nodes
-    
-    def merge_nodes(self):
-        """合并所有源的节点"""
-        all_nodes = []
-        total_extracted = 0
-        
-        # 并发获取所有源的节点
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.config["WORKERS"]) as executor:
-            results = list(executor.map(self.fetch_nodes, self.config["SOURCES"]))
-        
-        # 合并结果
-        for nodes in results:
-            total_extracted += len(nodes)
-            all_nodes.extend(nodes)
-        
-        # 去重
-        self.nodes = list(set(all_nodes))
-        logger.info(f"合并后共获取到{len(self.nodes)}个唯一节点 (总提取: {total_extracted}个节点)")
-        logger.info(f"去重后减少了{total_extracted - len(self.nodes)}个重复节点")
     
     def generate_subscription(self, nodes, output_file):
         """生成订阅文件"""
@@ -308,6 +201,12 @@ class NodeProcessor:
             # 获取完整的输出路径
             full_output_path = self._get_output_path(output_file)
             logger.info(f"准备生成订阅文件: {full_output_path}，包含{len(nodes)}个节点")
+            
+            # 确保输出目录存在（再次确认）
+            output_dir = os.path.dirname(full_output_path)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir, exist_ok=True)
+                logger.info(f"确保输出目录存在: {output_dir}")
             
             # 将节点列表转换为字符串
             nodes_text = '\n'.join(nodes)
@@ -320,8 +219,24 @@ class NodeProcessor:
             # 保存到文件
             with open(full_output_path, 'w', encoding='utf-8') as f:
                 f.write(subscription_content)
+                f.flush()
+                # 在Windows系统上，尝试确保数据写入磁盘
+                if os.name == 'nt':
+                    try:
+                        os.fsync(f.fileno())
+                    except:
+                        pass  # Windows可能不支持fsync，忽略错误
             
-            logger.info(f"订阅已生成并保存到 {full_output_path}，包含{len(nodes)}个节点")
+            # 验证文件是否成功创建
+            if os.path.exists(full_output_path):
+                file_size = os.path.getsize(full_output_path)
+                if file_size > 0:
+                    logger.info(f"订阅已生成并保存到 {full_output_path}，包含{len(nodes)}个节点，文件大小: {file_size}字节")
+                else:
+                    logger.warning(f"订阅文件已创建但为空: {full_output_path}")
+            else:
+                logger.warning(f"订阅文件写入后未找到: {full_output_path}")
+            
             return subscription_content
         except Exception as e:
             logger.error(f"生成订阅文件{output_file}失败: {str(e)}")
@@ -331,8 +246,8 @@ class NodeProcessor:
                 with open(full_output_path, 'w', encoding='utf-8') as f:
                     f.write('')
                 logger.warning(f"已创建空的{output_file}文件")
-            except:
-                pass
+            except Exception as inner_e:
+                logger.error(f"创建空文件也失败: {str(inner_e)}")
             return None
 
     def categorize_nodes_by_type(self):
@@ -449,8 +364,9 @@ def main():
     # 创建处理器实例，指定输出目录
     processor = NodeProcessor(config, "subscriptions_output")
     
-    # 执行处理流程
-    processor.merge_nodes()
+    # 创建合并器实例并执行处理流程
+    merger = NodeMerger(config)
+    processor.nodes = merger.merge_nodes()
     
     if not processor.nodes:
         logger.error("未能获取任何节点，请检查网络连接或源地址是否有效")

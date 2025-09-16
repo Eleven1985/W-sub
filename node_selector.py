@@ -170,6 +170,10 @@ class NodeSelector:
     
     def test_and_select_best_nodes(self, nodes):
         """测试节点速度并选择最优节点"""
+        if not nodes:
+            logger.warning("[NodeSelector] 没有节点可供测试")
+            return []
+            
         logger.info(f"[NodeSelector] 开始测试节点响应速度，共{len(nodes)}个节点需要测试")
         
         # 初始化节点速度列表
@@ -217,7 +221,7 @@ class NodeSelector:
             # 确保输出目录存在
             output_dir = os.path.dirname(output_file)
             if output_dir and not os.path.exists(output_dir):
-                os.makedirs(output_dir)
+                os.makedirs(output_dir, exist_ok=True)
                 logger.info(f"[NodeSelector] 已创建输出目录: {output_dir}")
                 
             logger.info(f"[NodeSelector] 准备生成最优节点订阅文件: {output_file}，包含{len(nodes)}个节点")
@@ -233,8 +237,24 @@ class NodeSelector:
             # 保存到文件
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(subscription_content)
+                f.flush()
+                # 在Windows系统上，尝试确保数据写入磁盘
+                if os.name == 'nt':
+                    try:
+                        os.fsync(f.fileno())
+                    except:
+                        pass  # Windows可能不支持fsync，忽略错误
             
-            logger.info(f"[NodeSelector] 最优节点订阅已生成并保存到 {output_file}，包含{len(nodes)}个节点")
+            # 验证文件是否成功创建
+            if os.path.exists(output_file):
+                file_size = os.path.getsize(output_file)
+                if file_size > 0:
+                    logger.info(f"[NodeSelector] 最优节点订阅已生成并保存到 {output_file}，包含{len(nodes)}个节点，文件大小: {file_size}字节")
+                else:
+                    logger.warning(f"[NodeSelector] 最优节点订阅文件已创建但为空: {output_file}")
+            else:
+                logger.warning(f"[NodeSelector] 最优节点订阅文件写入后未找到: {output_file}")
+            
             return subscription_content
         except Exception as e:
             logger.error(f"[NodeSelector] 生成最优节点订阅文件{output_file}失败: {str(e)}")
@@ -243,7 +263,7 @@ class NodeSelector:
                 # 再次确保目录存在
                 output_dir = os.path.dirname(output_file)
                 if output_dir and not os.path.exists(output_dir):
-                    os.makedirs(output_dir)
+                    os.makedirs(output_dir, exist_ok=True)
                 
                 with open(output_file, 'w', encoding='utf-8') as f:
                     f.write('')
