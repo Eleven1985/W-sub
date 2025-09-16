@@ -149,6 +149,16 @@ class NodeProcessor:
             'ss': [],
             'ssr': [],
             'hysteria': [],
+            # 添加更多节点类型
+            'tuic': [],
+            'naiveproxy': [],
+            'socks5': [],
+            'http': [],
+            'https': [],
+            'wireguard': [],
+            'sing-box': [],
+            'clash': [],
+            'xray': [],
             'other': []
         }
         
@@ -171,6 +181,25 @@ class NodeProcessor:
                 categorized_nodes['ssr'].append(node)
             elif node.startswith('hysteria://'):
                 categorized_nodes['hysteria'].append(node)
+            # 添加新的节点类型判断
+            elif node.startswith('tuic://'):
+                categorized_nodes['tuic'].append(node)
+            elif node.startswith('naiveproxy://'):
+                categorized_nodes['naiveproxy'].append(node)
+            elif node.startswith('socks5://'):
+                categorized_nodes['socks5'].append(node)
+            elif node.startswith('http://'):
+                categorized_nodes['http'].append(node)
+            elif node.startswith('https://'):
+                categorized_nodes['https'].append(node)
+            elif node.startswith('wireguard://'):
+                categorized_nodes['wireguard'].append(node)
+            elif node.startswith('sing-box://'):
+                categorized_nodes['sing-box'].append(node)
+            elif node.startswith('clash://'):
+                categorized_nodes['clash'].append(node)
+            elif node.startswith('xray://'):
+                categorized_nodes['xray'].append(node)
             else:
                 categorized_nodes['other'].append(node)
         
@@ -196,6 +225,16 @@ class NodeProcessor:
             'ss': 'subscription_ss.txt',
             'ssr': 'subscription_ssr.txt',
             'hysteria': 'subscription_hysteria.txt',
+            # 添加新的节点类型文件名映射
+            'tuic': 'subscription_tuic.txt',
+            'naiveproxy': 'subscription_naiveproxy.txt',
+            'socks5': 'subscription_socks5.txt',
+            'http': 'subscription_http.txt',
+            'https': 'subscription_https.txt',
+            'wireguard': 'subscription_wireguard.txt',
+            'sing-box': 'subscription_sing-box.txt',
+            'clash': 'subscription_clash.txt',
+            'xray': 'subscription_xray.txt',
             'other': 'subscription_other.txt'
         }
         

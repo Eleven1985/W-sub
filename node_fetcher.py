@@ -63,7 +63,8 @@ class NodeFetcher:
                 continue
             
             # 检查是否为支持的节点类型
-            if re.match(r'^(vmess|v2ray|trojan|trojan-go|shadowsocks|shadowsocksr|vless|ss|ssr|hysteria)://', line):
+            # 添加更多节点格式支持
+            if re.match(r'^(vmess|v2ray|trojan|trojan-go|shadowsocks|shadowsocksr|vless|ss|ssr|hysteria|tuic|naiveproxy|socks5|http|https|wireguard|sing-box|clash|xray)://', line):
                 nodes.append(line)
         
         return nodes
