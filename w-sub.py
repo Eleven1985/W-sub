@@ -86,6 +86,10 @@ class ConfigLoader:
                     # 简化格式：直接识别URL（不以#开头且不包含=号）
                     elif re.match(r'^https?://', line):
                         config["SOURCES"].append(line)
+        except Exception as e:
+            logger.error(f"加载配置文件失败: {str(e)}")
+            # 使用默认配置
+            logger.info("使用默认配置继续运行")
         
         logger.info(f"成功加载配置文件: {config_file}")
         logger.info(f"成功加载配置，共 {len(config['SOURCES'])} 个节点源")
