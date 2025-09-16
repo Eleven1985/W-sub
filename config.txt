@@ -41,6 +41,31 @@ GENERATE_COUNTRY_FILES=true
 MIN_NODES_PER_COUNTRY=5
 
 
+## 功能说明
+
+1. **新增节点测速功能**：通过创建套接字连接来测量每个节点的响应时间
+2. **智能节点解析**：支持解析多种节点类型（vmess、vless、trojan、shadowsocks等）
+3. **并发测试**：使用多线程并发测试节点，提高效率
+4. **优选功能**：按照响应速度排序，选择前50个最快的节点
+5. **双文件输出**：
+   - `subscription_all.txt`: 包含所有节点的订阅文件
+   - `subscription_best.txt`: 仅包含优选的50个最快节点的订阅文件
+
+## 配置修改建议
+
+为了更好地使用优选功能，您可以在配置文件中添加以下配置项（如果不存在）：
+```
+# 优选节点数量
+BEST_NODES_COUNT=50
+
+# 节点测试超时时间（秒）
+TEST_TIMEOUT=3
+
+# 输出文件名 - 最优节点
+OUTPUT_BEST_FILE=subscription_best.txt
+```
+
+
 
 
 

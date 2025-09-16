@@ -5,9 +5,8 @@ w-sub - 节点订阅汇总工具
 功能：
 1. 从指定URL获取节点配置
 2. 合并多个源的节点
-3. 生成一个订阅文件：包含所有节点
-4. 支持按国家筛选节点（可选）
-5. 支持按国家生成单独的订阅文件（可选）
+3. 测试节点响应速度并排序
+4. 生成包含最优节点的订阅文件
 """
 import os
 import re
@@ -19,6 +18,9 @@ import logging
 import requests
 import concurrent.futures
 from datetime import datetime
+import socket
+import struct
+import urllib.parse
 
 # 配置日志
 sys.stdout.reconfigure(encoding='utf-8')
@@ -40,11 +42,11 @@ class ConfigLoader:
             "SOURCES": [],
             "TIMEOUT": 5,
             "OUTPUT_ALL_FILE": "subscription_all.txt",
+            "OUTPUT_BEST_FILE": "subscription_best.txt",
             "WORKERS": 10,
             "MAX_RETRY": 2,  # 获取节点源的重试次数
-            "USE_COUNTRY_CODE": False,
-            "GENERATE_COUNTRY_FILES": False,
-            "MIN_NODES_PER_COUNTRY": 5
+            "BEST_NODES_COUNT": 50,  # 优选节点数量
+            "TEST_TIMEOUT": 3  # 节点测试超时时间（秒）
         }
         
         try:
@@ -65,14 +67,11 @@ class ConfigLoader:
                             config[key].append(value)
                         elif key in config:
                             # 根据配置项类型转换值
-                            if key in ["TIMEOUT", "WORKERS", "MAX_RETRY", "MIN_NODES_PER_COUNTRY"]:
+                            if key in ["TIMEOUT", "WORKERS", "MAX_RETRY", "BEST_NODES_COUNT", "TEST_TIMEOUT"]:
                                 try:
                                     config[key] = int(value)
                                 except ValueError:
                                     logger.warning(f"配置项 {key} 的值 {value} 不是有效的数字，使用默认值 {config[key]}")
-                            elif key in ["USE_COUNTRY_CODE", "GENERATE_COUNTRY_FILES"]:
-                                # 转换布尔值
-                                config[key] = value.lower() == 'true'
                             else:
                                 config[key] = value
         
@@ -83,6 +82,84 @@ class ConfigLoader:
             logger.info("使用默认配置继续执行")
             return config
 
+class NodeTester:
+    """节点测试器，用于测试节点的响应速度"""
+    @staticmethod
+    def test_node_speed(node_url, timeout=3):
+        """测试节点的响应速度，返回响应时间（秒），测试失败返回None"""
+        try:
+            # 解析节点URL，提取服务器地址和端口
+            server_info = NodeTester._extract_server_info(node_url)
+            if not server_info:
+                return None
+            
+            host, port = server_info
+            
+            # 创建socket连接并测量时间
+            start_time = time.time()
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(timeout)
+                s.connect((host, port))
+                end_time = time.time()
+                response_time = end_time - start_time
+                return response_time
+        except Exception as e:
+            # 忽略测试失败的节点
+            return None
+    
+    @staticmethod
+    def _extract_server_info(node_url):
+        """从节点URL中提取服务器地址和端口"""
+        try:
+            # 处理vmess节点
+            if node_url.startswith('vmess://'):
+                # 解码vmess节点信息
+                vmess_data = node_url[8:]
+                decoded = base64.b64decode(vmess_data).decode('utf-8')
+                vmess_json = json.loads(decoded)
+                return vmess_json.get('add'), int(vmess_json.get('port'))
+            
+            # 处理vless节点
+            elif node_url.startswith('vless://'):
+                # vless://uuid@host:port?path=...
+                match = re.search(r'vless://[^@]+@([^:]+):(\d+)', node_url)
+                if match:
+                    return match.group(1), int(match.group(2))
+            
+            # 处理trojan节点
+            elif node_url.startswith('trojan://'):
+                # trojan://password@host:port?path=...
+                match = re.search(r'trojan://[^@]+@([^:]+):(\d+)', node_url)
+                if match:
+                    return match.group(1), int(match.group(2))
+            
+            # 处理shadowsocks节点
+            elif node_url.startswith('shadowsocks://') or node_url.startswith('ss://'):
+                # ss://base64(加密:密码)@host:port
+                ss_data = node_url[5:] if node_url.startswith('ss://') else node_url[13:]
+                # 解码ss节点信息
+                if '#' in ss_data:
+                    ss_data = ss_data.split('#')[0]
+                if '@' in ss_data:
+                    try:
+                        encoded_part, server_part = ss_data.split('@')
+                        if ':' in server_part:
+                            host, port = server_part.split(':')
+                            return host, int(port)
+                    except:
+                        pass
+            
+            # 尝试通用解析方法
+            # 查找URL中的host:port模式
+            match = re.search(r'@([^:]+):(\d+)', node_url)
+            if match:
+                return match.group(1), int(match.group(2))
+            
+            return None
+        except Exception as e:
+            logger.debug(f"解析节点信息失败: {str(e)}")
+            return None
+
 class NodeProcessor:
     def __init__(self, config):
         self.config = config
@@ -90,7 +167,7 @@ class NodeProcessor:
         self.valid_nodes_count = 0
         self.failed_nodes_count = 0
         self.debug_info = []
-        self.nodes_by_country = {}
+        self.nodes_with_speed = []  # 存储节点和对应的响应时间
     
     def fetch_nodes(self, url):
         """从指定URL获取节点配置"""
@@ -168,7 +245,7 @@ class NodeProcessor:
     
     def _extract_nodes(self, content):
         """从内容中提取节点链接"""
-        # 支持的节点类型正则表达式，增加了vless等新型节点类型
+        # 支持的节点类型正则表达式
         patterns = [
             r'(vmess://[^\s]+)',
             r'(v2ray://[^\s]+)',
@@ -206,26 +283,40 @@ class NodeProcessor:
         # 去重
         self.nodes = list(set(all_nodes))
         logger.info(f"合并后共获取到{len(self.nodes)}个唯一节点")
-        
-        # 如果需要按国家分组，则处理节点
-        if self.config["USE_COUNTRY_CODE"] or self.config["GENERATE_COUNTRY_FILES"]:
-            self._group_nodes_by_country()
     
-    def _group_nodes_by_country(self):
-        """按国家代码对节点进行分组"""
-        # 简单的国家代码识别（实际应用中可能需要更复杂的解析）
-        country_pattern = re.compile(r'#([A-Z]{2})')
+    def test_and_select_best_nodes(self):
+        """测试节点速度并选择最优节点"""
+        logger.info(f"开始测试节点响应速度，共{len(self.nodes)}个节点需要测试")
         
-        for node in self.nodes:
-            # 尝试从节点名称中提取国家代码
-            match = country_pattern.search(node)
-            if match:
-                country_code = match.group(1)
-                if country_code not in self.nodes_by_country:
-                    self.nodes_by_country[country_code] = []
-                self.nodes_by_country[country_code].append(node)
+        # 并发测试节点速度
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.config["WORKERS"] * 2) as executor:
+            # 创建任务列表
+            futures = {executor.submit(NodeTester.test_node_speed, node, self.config["TEST_TIMEOUT"]): node for node in self.nodes}
+            
+            # 收集结果
+            for future in concurrent.futures.as_completed(futures):
+                node = futures[future]
+                try:
+                    speed = future.result()
+                    if speed is not None:
+                        self.nodes_with_speed.append((node, speed))
+                except Exception as e:
+                    logger.debug(f"测试节点失败: {str(e)}")
         
-        logger.info(f"按国家代码分组后，得到{len(self.nodes_by_country)}个国家/地区的节点")
+        # 按响应速度排序（时间越短越好）
+        self.nodes_with_speed.sort(key=lambda x: x[1])
+        
+        logger.info(f"成功测试了{len(self.nodes_with_speed)}个节点")
+        
+        # 选择前N个最快的节点
+        best_nodes_count = min(self.config["BEST_NODES_COUNT"], len(self.nodes_with_speed))
+        best_nodes = [node for node, speed in self.nodes_with_speed[:best_nodes_count]]
+        
+        # 记录前10个最快节点的信息
+        for i, (node, speed) in enumerate(self.nodes_with_speed[:10]):
+            logger.info(f"第{i+1}快节点: 响应时间 {speed*1000:.2f}ms")
+        
+        return best_nodes
     
     def generate_subscription(self, nodes, output_file):
         """生成订阅文件"""
@@ -243,21 +334,6 @@ class NodeProcessor:
         
         logger.info(f"订阅已生成并保存到 {output_file}，包含{len(nodes)}个节点")
         return subscription_content
-    
-    def generate_country_subscriptions(self):
-        """按国家生成单独的订阅文件"""
-        if not self.config["GENERATE_COUNTRY_FILES"]:
-            return
-        
-        output_dir = "country_subscriptions"
-        os.makedirs(output_dir, exist_ok=True)
-        
-        for country_code, nodes in self.nodes_by_country.items():
-            if len(nodes) >= self.config["MIN_NODES_PER_COUNTRY"]:
-                output_file = os.path.join(output_dir, f"subscription_{country_code}.txt")
-                self.generate_subscription(nodes, output_file)
-
-
 
 
 def main():
@@ -277,11 +353,18 @@ def main():
         logger.error("未能获取任何节点，请检查网络连接或源地址是否有效")
         return
     
+    # 测试节点速度并选择最优节点
+    best_nodes = processor.test_and_select_best_nodes()
+    
+    if not best_nodes:
+        logger.error("未能找到可用的节点，请检查网络连接")
+        return
+    
     # 生成包含所有节点的订阅文件
     processor.generate_subscription(processor.nodes, config["OUTPUT_ALL_FILE"])
     
-    # 如果配置了按国家生成文件，则执行
-    processor.generate_country_subscriptions()
+    # 生成包含最优节点的订阅文件
+    processor.generate_subscription(best_nodes, config["OUTPUT_BEST_FILE"])
     
     logger.info("处理完成！")
 
