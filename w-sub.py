@@ -173,7 +173,7 @@ class NodeProcessor:
             logger.error(f"创建输出目录失败: {str(e)}")
             # 尝试使用用户文档目录作为备选
             try:
-                import os
+                # 移除重复的import os语句
                 # 获取用户文档目录
                 docs_dir = os.path.expanduser("~")
                 if os.name == 'nt':  # Windows系统
