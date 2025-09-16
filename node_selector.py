@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 class NodeTester:
     """节点测试器，用于测试节点的响应速度"""
     @staticmethod
-def test_node_speed(node_url, timeout=3):
+    def test_node_speed(node_url, timeout=3):
         """测试节点响应速度"""
         try:
             # 提取服务器信息
@@ -67,7 +67,7 @@ def test_node_speed(node_url, timeout=3):
             return None
     
     @staticmethod
-def _extract_server_info(node_url):
+    def _extract_server_info(node_url):
         """从节点URL中提取服务器地址和端口"""
         try:
             # 处理vmess节点

@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 class ConfigLoader:
     """配置加载器，从配置文件读取设置"""
     @staticmethod
-def load_config(config_file="config.txt"):
+    def load_config(config_file="config.txt"):
         config = {
             "SOURCES": [],
             "TIMEOUT": 5,
