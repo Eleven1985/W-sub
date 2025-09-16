@@ -34,40 +34,37 @@ from config_loader import ConfigLoader
 from node_merger import NodeMerger
 from node_selector import NodeSelector
 
+// 修改NodeProcessor类的初始化方法
 class NodeProcessor:
-    """节点处理器，负责处理节点和生成订阅文件"""
-    
     def __init__(self, config, output_dir=None):
         self.config = config
         self.nodes = []
-        # 设置输出目录，默认在当前目录下创建subscriptions文件夹
-        self.output_dir = output_dir or "subscriptions"
+        # 设置主输出目录
+        self.output_dir = output_dir or os.path.join(os.getcwd(), "subscriptions")
+        # 创建专门存放主要订阅文件的文件夹
+        self.main_subs_dir = os.path.join(self.output_dir, "main_subscriptions")
         # 确保输出目录存在
         self._ensure_output_dir()
-    
-    def _ensure_output_dir(self):
-        """确保输出目录存在"""
-        # 使用绝对路径
-        absolute_output_dir = os.path.abspath(self.output_dir)
-        
-        try:
-            if not os.path.exists(absolute_output_dir):
-                os.makedirs(absolute_output_dir, exist_ok=True)
-                logger.info(f"已创建输出目录: {absolute_output_dir}")
-            else:
-                logger.info(f"输出目录已存在: {absolute_output_dir}")
-            self.output_dir = absolute_output_dir
-        except Exception as e:
-            logger.error(f"创建输出目录失败: {str(e)}")
-            # 尝试使用当前目录作为备选
-            self.output_dir = os.getcwd()
-            logger.warning(f"将使用当前目录作为输出目录: {self.output_dir}")
-    
+
+    // 修改_get_output_path方法，为主要订阅文件提供特殊处理
     def _get_output_path(self, filename):
         """获取文件的完整输出路径"""
+        # 检查是否是主要订阅文件
+        if filename in [self.config["OUTPUT_ALL_FILE"], self.config["OUTPUT_BEST_FILE"]]:
+            # 确保主订阅文件夹存在
+            if not os.path.exists(self.main_subs_dir):
+                try:
+                    os.makedirs(self.main_subs_dir, exist_ok=True)
+                    logger.info(f"已创建主订阅文件夹: {self.main_subs_dir}")
+                except Exception as e:
+                    logger.error(f"创建主订阅文件夹失败: {str(e)}")
+                    # 回退到输出目录
+                    return os.path.join(self.output_dir, filename)
+            return os.path.join(self.main_subs_dir, filename)
+        # 其他文件使用常规输出目录
         return os.path.join(self.output_dir, filename)
-    
-    # 修改NodeProcessor类的generate_subscription方法
+
+    // 增强generate_subscription方法的文件验证逻辑
     def generate_subscription(self, nodes, output_file):
         """生成订阅文件"""
         try:
@@ -75,9 +72,12 @@ class NodeProcessor:
                 logger.warning(f"没有节点可生成订阅: {output_file}")
                 return None
             
+            # 记录生成文件的操作
+            logger.info(f"准备生成订阅文件: {output_file}，包含{len(nodes)}个节点")
+            
             # 获取完整的输出路径
             full_output_path = self._get_output_path(output_file)
-            logger.info(f"准备生成订阅文件: {full_output_path}，包含{len(nodes)}个节点")
+            logger.info(f"输出路径: {full_output_path}")
             
             # 确保输出目录存在
             output_dir = os.path.dirname(full_output_path)
@@ -246,6 +246,7 @@ class NodeProcessor:
         
         logger.info("所有节点类型的订阅文件已生成完成")
     
+    // 修改generate_best_nodes_subscription方法，确保使用_get_output_path
     def generate_best_nodes_subscription(self):
         """生成最优节点订阅"""
         try:
@@ -261,32 +262,9 @@ class NodeProcessor:
             
             logger.info(f"准备生成优选节点订阅，共{len(best_nodes)}个节点")
             
-            # 生成最优节点订阅文件 - 主方法
-            output_path = self._get_output_path(self.config["OUTPUT_BEST_FILE"])
-            logger.debug(f"输出路径: {output_path}")
+            # 直接使用generate_subscription方法生成文件
+            return self.generate_subscription(best_nodes, self.config["OUTPUT_BEST_FILE"])
             
-            # 直接使用当前类的generate_subscription方法，这个方法更可靠
-            result = self.generate_subscription(best_nodes, self.config["OUTPUT_BEST_FILE"])
-            
-            if result is None:
-                logger.error("生成最优节点订阅失败，尝试在当前目录创建文件")
-                # 直接在当前目录创建文件作为最后备用
-                try:
-                    nodes_text = '\n'.join(best_nodes)
-                    subscription_content = base64.b64encode(nodes_text.encode('utf-8')).decode('utf-8')
-                    
-                    fallback_path = os.path.join(os.getcwd(), self.config["OUTPUT_BEST_FILE"])
-                    with open(fallback_path, 'w', encoding='utf-8') as f:
-                        f.write(subscription_content)
-                    
-                    if os.path.exists(fallback_path) and os.path.getsize(fallback_path) > 0:
-                        logger.info(f"已在当前目录生成最优节点订阅: {fallback_path}")
-                    else:
-                        logger.error("在当前目录创建文件也失败")
-                except Exception as e:
-                    logger.error(f"备用方法创建文件失败: {str(e)}")
-            
-            return best_nodes
         except Exception as e:
             logger.error(f"生成最优节点订阅时发生错误: {str(e)}")
             import traceback
