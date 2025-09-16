@@ -1,19 +1,20 @@
 # w-sub 配置文件
-# 节点源URL列表，每行一个
-SOURCES=https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/V2Ray-Config-By-EbraSha.txt
-SOURCES=https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt
-SOURCES=https://raw.githubusercontent.com/Awmiroosen/awmirx-v2ray/refs/heads/main/blob/main/v2-sub.txt
-SOURCES=https://raw.githubusercontent.com/Flikify/Free-Node/refs/heads/main/v2ray.txt
-SOURCES=https://raw.githubusercontent.com/ggborr/FREEE-VPN/refs/heads/main/8V2
-SOURCES=https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt
-SOURCES=https://raw.githubusercontent.com/xiaoji235/airport-free/refs/heads/main/v2ray.txt
-SOURCES=https://raw.githubusercontent.com/arshiacomplus/v2rayExtractor/refs/heads/main/mix/sub.html
-SOURCES=https://raw.githubusercontent.com/MahsaNetConfigTopic/config/refs/heads/main/xray_final.txt
-SOURCES=https://raw.githubusercontent.com/Mhdiqpzx/Mahdi-VIP/refs/heads/main/Mahdi-Vip.txt
-SOURCES=https://raw.githubusercontent.com/sinavm/SVM/refs/heads/main/subscriptions/xray/base64/vless
-SOURCES=https://raw.githubusercontent.com/Joker-funland/V2ray-configs/refs/heads/main/vless.txt
-SOURCES=https://raw.githubusercontent.com/itsyebekhe/PSG/refs/heads/main/subscriptions/xray/base64/vless
-SOURCES=https://raw.githubusercontent.com/SonzaiEkkusu/V2RayDumper/refs/heads/main/config.txt
+
+# 直接写URL，无需前缀
+https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/V2Ray-Config-By-EbraSha.txt
+https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt
+https://raw.githubusercontent.com/Awmiroosen/awmirx-v2ray/refs/heads/main/blob/main/v2-sub.txt
+https://raw.githubusercontent.com/Flikify/Free-Node/refs/heads/main/v2ray.txt
+https://raw.githubusercontent.com/ggborr/FREEE-VPN/refs/heads/main/8V2
+https://raw.githubusercontent.com/Rayan-Config/C-Sub/refs/heads/main/configs/proxy.txt
+https://raw.githubusercontent.com/xiaoji235/airport-free/refs/heads/main/v2ray.txt
+https://raw.githubusercontent.com/arshiacomplus/v2rayExtractor/refs/heads/main/mix/sub.html
+https://raw.githubusercontent.com/MahsaNetConfigTopic/config/refs/heads/main/xray_final.txt
+https://raw.githubusercontent.com/Mhdiqpzx/Mahdi-VIP/refs/heads/main/Mahdi-Vip.txt
+https://raw.githubusercontent.com/sinavm/SVM/refs/heads/main/subscriptions/xray/base64/vless
+https://raw.githubusercontent.com/Joker-funland/V2ray-configs/refs/heads/main/vless.txt
+https://raw.githubusercontent.com/itsyebekhe/PSG/refs/heads/main/subscriptions/xray/base64/vless
+https://raw.githubusercontent.com/SonzaiEkkusu/V2RayDumper/refs/heads/main/config.txt
 
 # 请求超时时间（秒）
 TIMEOUT=5
@@ -35,35 +36,3 @@ TEST_TIMEOUT=3
 
 # 输出文件名 - 最优节点
 OUTPUT_BEST_FILE=subscription_best.txt
-
-# 其他可选配置（当前未使用）
-# 是否使用国家代码
-# USE_COUNTRY_CODE=false
-
-# 是否按国家生成文件
-# GENERATE_COUNTRY_FILES=true
-
-# 每个国家文件的最小节点数
-# MIN_NODES_PER_COUNTRY=5
-
-
-## 功能说明
-
-1. **新增节点测速功能**：通过创建套接字连接来测量每个节点的响应时间
-2. **智能节点解析**：支持解析多种节点类型（vmess、vless、trojan、shadowsocks等）
-3. **并发测试**：使用多线程并发测试节点，提高效率
-4. **优选功能**：按照响应速度排序，选择前50个最快的节点
-5. **双文件输出**：
-   - `subscription_all.txt`: 包含所有节点的订阅文件
-   - `subscription_best.txt`: 仅包含优选的50个最快节点的订阅文件
-
-## 配置修改建议
-
-为了更好地使用优选功能，您可以在配置文件中添加以下配置项（如果不存在）：
-
-
-
-
-
-
-
