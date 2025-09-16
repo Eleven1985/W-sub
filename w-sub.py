@@ -425,7 +425,8 @@ def main():
     # 按节点类型生成分类订阅文件
     processor.generate_category_subscriptions()
     
-    logger.info("处理完成！所有订阅文件已保存到: subscriptions_output 文件夹")
+    logger.info(f"=== w-sub 节点订阅汇总工具运行完成 ===")
+    logger.info(f"所有节点处理完成，共生成{len(processor.nodes)}个节点的订阅")
 
 if __name__ == "__main__":
     main()
