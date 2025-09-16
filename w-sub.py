@@ -86,16 +86,17 @@ class NodeTester:
     """节点测试器，用于测试节点的响应速度"""
     @staticmethod
     def test_node_speed(node_url, timeout=3):
-        """测试节点的响应速度，返回响应时间（秒），测试失败返回None"""
+        """测试节点响应速度"""
         try:
-            # 解析节点URL，提取服务器地址和端口
+            # 提取服务器信息
             server_info = NodeTester._extract_server_info(node_url)
-            if not server_info:
+            if not server_info or len(server_info) != 2:
+                logger.debug(f"无法解析节点信息: {node_url[:50]}...")
                 return None
             
             host, port = server_info
             
-            # 创建socket连接并测量时间
+            # 创建套接字并测量连接时间
             start_time = time.time()
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.settimeout(timeout)
@@ -103,6 +104,15 @@ class NodeTester:
                 end_time = time.time()
                 response_time = end_time - start_time
                 return response_time
+        except socket.gaierror:
+            logger.debug(f"节点域名解析失败: {host if 'host' in locals() else 'unknown'}")
+            return None
+        except socket.timeout:
+            logger.debug(f"节点连接超时: {node_url[:50]}...")
+            return None
+        except ConnectionRefusedError:
+            logger.debug(f"节点连接被拒绝: {node_url[:50]}...")
+            return None
         except Exception as e:
             # 忽略测试失败的节点，仅记录调试信息
             logger.debug(f"测试节点失败: {str(e)}")
@@ -121,9 +131,9 @@ class NodeTester:
                     if padding_length < 4:
                         vmess_data += '=' * padding_length
                     
-                    decoded = base64.b64decode(vmess_data).decode('utf-8')
+                    decoded = base64.b64decode(vmess_data).decode('utf-8', errors='ignore')
                     vmess_json = json.loads(decoded)
-                    return vmess_json.get('add'), int(vmess_json.get('port'))
+                    return vmess_json.get('add'), int(vmess_json.get('port', 0))
                 except:
                     # 如果标准解析失败，尝试使用更宽松的方式
                     try:
@@ -191,6 +201,14 @@ class NodeTester:
             if ip_port_match:
                 return ip_port_match.group(1), int(ip_port_match.group(2))
             
+            # 增强：尝试匹配域名和端口
+            domain_port_match = re.search(r'([a-zA-Z0-9.-]+):(\d+)', node_url)
+            if domain_port_match:
+                domain = domain_port_match.group(1)
+                # 确保这是一个有效的域名格式（不是URL中的其他部分）
+                if not domain.startswith('http') and '.' in domain:
+                    return domain, int(domain_port_match.group(2))
+            
             return None
         except Exception as e:
             logger.debug(f"解析节点信息失败: {str(e)}")
@@ -241,13 +259,14 @@ class NodeProcessor:
         try:
             # 清理可能的换行符和空格
             cleaned_content = content.strip().replace('\n', '').replace('\r', '')
+            original_length = len(cleaned_content)
             
             # 尝试多种可能的解码方式
             # 1. 直接尝试解码
             try:
                 decoded = base64.b64decode(cleaned_content, validate=True).decode('utf-8', errors='ignore')
                 if any(char in decoded for char in ['vmess://', 'v2ray://', 'trojan://', 'shadowsocks://', 'vless://']):
-                    logger.info("成功解码base64内容")
+                    logger.info(f"成功解码base64内容 (原始长度: {original_length}, 解码后长度: {len(decoded)})")
                     return decoded
             except:
                 pass
@@ -258,7 +277,7 @@ class NodeProcessor:
                     padded_content = cleaned_content + padding
                     decoded = base64.b64decode(padded_content).decode('utf-8', errors='ignore')
                     if any(char in decoded for char in ['vmess://', 'v2ray://', 'trojan://', 'shadowsocks://', 'vless://']):
-                        logger.info("成功解码base64内容(使用填充)")
+                        logger.info(f"成功解码base64内容(使用填充) (原始长度: {original_length})")
                         return decoded
                 except:
                     continue
@@ -269,16 +288,32 @@ class NodeProcessor:
                     adjusted_content = cleaned_content[i:]
                     decoded = base64.b64decode(adjusted_content).decode('utf-8', errors='ignore')
                     if any(char in decoded for char in ['vmess://', 'v2ray://', 'trojan://', 'shadowsocks://', 'vless://']):
-                        logger.info(f"成功解码base64内容(偏移{i})")
+                        logger.info(f"成功解码base64内容(偏移{i}) (原始长度: {original_length})")
                         return decoded
                 except:
                     continue
+            
+            # 4. 增强：尝试按行解码
+            lines = content.strip().split('\n')
+            if len(lines) > 1:
+                decoded_lines = []
+                for line in lines:
+                    try:
+                        decoded_line = base64.b64decode(line.strip(), validate=True).decode('utf-8', errors='ignore')
+                        decoded_lines.append(decoded_line)
+                    except:
+                        decoded_lines.append(line)
+                combined = '\n'.join(decoded_lines)
+                if any(char in combined for char in ['vmess://', 'v2ray://', 'trojan://', 'shadowsocks://', 'vless://']):
+                    logger.info(f"成功解码多行base64内容 (行数: {len(lines)})")
+                    return combined
         except Exception as e:
             logger.error(f"解码base64内容时发生错误: {str(e)}")
         
         # 解码失败，返回原始内容
+        logger.debug(f"无法解码base64内容，返回原始内容 (长度: {original_length})")
         return content
-    
+
     def _extract_nodes(self, content):
         """从内容中提取节点链接"""
         # 支持的节点类型正则表达式
@@ -291,7 +326,11 @@ class NodeProcessor:
             r'(vless://[^\s]+)',
             r'(ss://[^\s]+)',
             r'(ssr://[^\s]+)',
-            r'(trojan-go://[^\s]+)'
+            r'(trojan-go://[^\s]+)',
+            # 增强：添加更多可能的节点格式
+            r'(clash://[^\s]+)',
+            r'(sing-box://[^\s]+)',
+            r'(hysteria://[^\s]+)'
         ]
         
         nodes = []
@@ -301,12 +340,13 @@ class NodeProcessor:
         
         # 去重
         unique_nodes = list(set(nodes))
-        logger.info(f"从内容中提取并去重后，得到{len(unique_nodes)}个节点")
+        logger.info(f"从内容中提取并去重后，得到{len(unique_nodes)}个节点 (原始提取: {len(nodes)})")
         return unique_nodes
     
     def merge_nodes(self):
         """合并所有源的节点"""
         all_nodes = []
+        total_extracted = 0
         
         # 并发获取所有源的节点
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.config["WORKERS"]) as executor:
@@ -314,11 +354,13 @@ class NodeProcessor:
         
         # 合并结果
         for nodes in results:
+            total_extracted += len(nodes)
             all_nodes.extend(nodes)
         
         # 去重
         self.nodes = list(set(all_nodes))
-        logger.info(f"合并后共获取到{len(self.nodes)}个唯一节点")
+        logger.info(f"合并后共获取到{len(self.nodes)}个唯一节点 (总提取: {total_extracted}个节点)")
+        logger.info(f"去重后减少了{total_extracted - len(self.nodes)}个重复节点")
     
     def test_and_select_best_nodes(self):
         """测试节点速度并选择最优节点"""
@@ -362,6 +404,8 @@ class NodeProcessor:
     def generate_subscription(self, nodes, output_file):
         """生成订阅文件"""
         try:
+            logger.info(f"准备生成订阅文件: {output_file}，包含{len(nodes)}个节点")
+            
             # 将节点列表转换为字符串
             nodes_text = '\n'.join(nodes)
             
@@ -378,6 +422,13 @@ class NodeProcessor:
             return subscription_content
         except Exception as e:
             logger.error(f"生成订阅文件{output_file}失败: {str(e)}")
+            # 尝试创建空文件，确保文件存在
+            try:
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    f.write('')
+                logger.warning(f"已创建空的{output_file}文件")
+            except:
+                pass
             return None
 
 
@@ -405,11 +456,21 @@ def main():
     processor.generate_subscription(processor.nodes, config["OUTPUT_ALL_FILE"])
     
     # 生成包含最优节点的订阅文件（即使best_nodes为空，也尝试生成）
-    if best_nodes:
-        processor.generate_subscription(best_nodes, config["OUTPUT_BEST_FILE"])
-    else:
-        logger.warning("没有找到最优节点，将使用所有节点生成最优订阅文件")
-        processor.generate_subscription(processor.nodes, config["OUTPUT_BEST_FILE"])
+    try:
+        if best_nodes:
+            processor.generate_subscription(best_nodes, config["OUTPUT_BEST_FILE"])
+        else:
+            logger.warning("没有找到最优节点，将使用所有节点生成最优订阅文件")
+            processor.generate_subscription(processor.nodes, config["OUTPUT_BEST_FILE"])
+    except Exception as e:
+        logger.error(f"生成最优节点订阅文件时发生严重错误: {str(e)}")
+        # 最后的尝试：强制创建文件
+        try:
+            with open(config["OUTPUT_BEST_FILE"], 'w', encoding='utf-8') as f:
+                f.write(base64.b64encode('\n'.join(processor.nodes).encode('utf-8')).decode('utf-8'))
+            logger.info(f"已强制生成{config['OUTPUT_BEST_FILE']}文件")
+        except Exception as inner_e:
+            logger.error(f"强制生成文件失败: {str(inner_e)}")
     
     logger.info("处理完成！")
 
