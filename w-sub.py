@@ -46,6 +46,25 @@ class NodeProcessor:
         # 确保输出目录存在
         self._ensure_output_dir()
 
+    # 添加_ensure_output_dir方法的完整实现
+    def _ensure_output_dir(self):
+        """确保输出目录存在"""
+        # 使用绝对路径
+        absolute_output_dir = os.path.abspath(self.output_dir)
+        
+        try:
+            if not os.path.exists(absolute_output_dir):
+                os.makedirs(absolute_output_dir, exist_ok=True)
+                logger.info(f"已创建输出目录: {absolute_output_dir}")
+            else:
+                logger.info(f"输出目录已存在: {absolute_output_dir}")
+            self.output_dir = absolute_output_dir
+        except Exception as e:
+            logger.error(f"创建输出目录失败: {str(e)}")
+            # 尝试使用当前目录作为备选
+            self.output_dir = os.getcwd()
+            logger.warning(f"将使用当前目录作为输出目录: {self.output_dir}")
+
     # 修改_get_output_path方法，为主要订阅文件提供特殊处理
     def _get_output_path(self, filename):
         """获取文件的完整输出路径"""
