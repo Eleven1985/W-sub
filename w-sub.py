@@ -34,7 +34,7 @@ from config_loader import ConfigLoader
 from node_merger import NodeMerger
 from node_selector import NodeSelector
 
-// 修改NodeProcessor类的初始化方法
+# 修改NodeProcessor类的初始化方法
 class NodeProcessor:
     def __init__(self, config, output_dir=None):
         self.config = config
@@ -46,7 +46,7 @@ class NodeProcessor:
         # 确保输出目录存在
         self._ensure_output_dir()
 
-    // 修改_get_output_path方法，为主要订阅文件提供特殊处理
+    # 修改_get_output_path方法，为主要订阅文件提供特殊处理
     def _get_output_path(self, filename):
         """获取文件的完整输出路径"""
         # 检查是否是主要订阅文件
@@ -64,7 +64,7 @@ class NodeProcessor:
         # 其他文件使用常规输出目录
         return os.path.join(self.output_dir, filename)
 
-    // 增强generate_subscription方法的文件验证逻辑
+    # 增强generate_subscription方法的文件验证逻辑
     def generate_subscription(self, nodes, output_file):
         """生成订阅文件"""
         try:
@@ -136,117 +136,8 @@ class NodeProcessor:
             import traceback
             traceback.print_exc()
             return None
-    
-    def categorize_nodes_by_type(self):
-        """按节点类型分类节点"""
-        categorized_nodes = {
-            'vmess': [],
-            'v2ray': [],
-            'trojan': [],
-            'shadowsocks': [],
-            'shadowsocksr': [],
-            'vless': [],
-            'ss': [],
-            'ssr': [],
-            'hysteria': [],
-            # 添加更多节点类型
-            'tuic': [],
-            'naiveproxy': [],
-            'socks5': [],
-            'http': [],
-            'https': [],
-            'wireguard': [],
-            'sing-box': [],
-            'clash': [],
-            'xray': [],
-            'other': []
-        }
-        
-        for node in self.nodes:
-            if node.startswith('vmess://'):
-                categorized_nodes['vmess'].append(node)
-            elif node.startswith('v2ray://'):
-                categorized_nodes['v2ray'].append(node)
-            elif node.startswith('trojan://') or node.startswith('trojan-go://'):
-                categorized_nodes['trojan'].append(node)
-            elif node.startswith('shadowsocks://'):
-                categorized_nodes['shadowsocks'].append(node)
-            elif node.startswith('shadowsocksr://'):
-                categorized_nodes['shadowsocksr'].append(node)
-            elif node.startswith('vless://'):
-                categorized_nodes['vless'].append(node)
-            elif node.startswith('ss://'):
-                categorized_nodes['ss'].append(node)
-            elif node.startswith('ssr://'):
-                categorized_nodes['ssr'].append(node)
-            elif node.startswith('hysteria://'):
-                categorized_nodes['hysteria'].append(node)
-            # 添加新的节点类型判断
-            elif node.startswith('tuic://'):
-                categorized_nodes['tuic'].append(node)
-            elif node.startswith('naiveproxy://'):
-                categorized_nodes['naiveproxy'].append(node)
-            elif node.startswith('socks5://'):
-                categorized_nodes['socks5'].append(node)
-            elif node.startswith('http://'):
-                categorized_nodes['http'].append(node)
-            elif node.startswith('https://'):
-                categorized_nodes['https'].append(node)
-            elif node.startswith('wireguard://'):
-                categorized_nodes['wireguard'].append(node)
-            elif node.startswith('sing-box://'):
-                categorized_nodes['sing-box'].append(node)
-            elif node.startswith('clash://'):
-                categorized_nodes['clash'].append(node)
-            elif node.startswith('xray://'):
-                categorized_nodes['xray'].append(node)
-            else:
-                categorized_nodes['other'].append(node)
-        
-        # 记录分类结果
-        for node_type, nodes_list in categorized_nodes.items():
-            if nodes_list:
-                logger.info(f"{node_type.upper()} 类型节点数量: {len(nodes_list)}")
-        
-        return categorized_nodes
-    
-    def generate_category_subscriptions(self):
-        """为每种节点类型生成订阅文件"""
-        categorized_nodes = self.categorize_nodes_by_type()
-        
-        # 定义节点类型到文件名的映射
-        type_to_filename = {
-            'vmess': 'subscription_vmess.txt',
-            'v2ray': 'subscription_v2ray.txt',
-            'trojan': 'subscription_trojan.txt',
-            'shadowsocks': 'subscription_shadowsocks.txt',
-            'shadowsocksr': 'subscription_shadowsocksr.txt',
-            'vless': 'subscription_vless.txt',
-            'ss': 'subscription_ss.txt',
-            'ssr': 'subscription_ssr.txt',
-            'hysteria': 'subscription_hysteria.txt',
-            # 添加新的节点类型文件名映射
-            'tuic': 'subscription_tuic.txt',
-            'naiveproxy': 'subscription_naiveproxy.txt',
-            'socks5': 'subscription_socks5.txt',
-            'http': 'subscription_http.txt',
-            'https': 'subscription_https.txt',
-            'wireguard': 'subscription_wireguard.txt',
-            'sing-box': 'subscription_sing-box.txt',
-            'clash': 'subscription_clash.txt',
-            'xray': 'subscription_xray.txt',
-            'other': 'subscription_other.txt'
-        }
-        
-        # 为每种类型生成订阅文件
-        for node_type, nodes_list in categorized_nodes.items():
-            if nodes_list:
-                filename = type_to_filename[node_type]
-                self.generate_subscription(nodes_list, filename)
-        
-        logger.info("所有节点类型的订阅文件已生成完成")
-    
-    // 修改generate_best_nodes_subscription方法，确保使用_get_output_path
+
+    # 修改generate_best_nodes_subscription方法，确保使用_get_output_path
     def generate_best_nodes_subscription(self):
         """生成最优节点订阅"""
         try:
