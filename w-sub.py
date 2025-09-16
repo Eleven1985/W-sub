@@ -52,11 +52,26 @@ class ConfigLoader:
         
         # 如果未指定配置文件路径，先尝试从configs文件夹查找
         if config_file is None:
-            if os.path.exists("configs/config.txt"):
-                config_file = "configs/config.txt"
+            # 获取当前脚本所在目录的绝对路径
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            # 构建configs目录的绝对路径
+            configs_dir = os.path.join(script_dir, 'configs')
+            # 构建完整的配置文件路径
+            config_file_candidate = os.path.join(configs_dir, 'config.txt')
+            
+            if os.path.exists(config_file_candidate):
+                config_file = config_file_candidate
+                logger.info(f"使用配置文件: {config_file}")
             else:
-                config_file = "config.txt"
-                logger.info("未在configs文件夹找到配置文件，使用当前目录的config.txt")
+                # 尝试当前目录下的config.txt
+                current_dir_config = os.path.join(script_dir, 'config.txt')
+                if os.path.exists(current_dir_config):
+                    config_file = current_dir_config
+                    logger.info(f"使用当前目录配置文件: {config_file}")
+                else:
+                    # 都找不到，设置为当前目录的config.txt，但会在后面的try-except中处理
+                    config_file = current_dir_config
+                    logger.warning(f"未找到配置文件，将尝试创建默认配置文件: {config_file}")
         
         try:
             with open(config_file, 'r', encoding='utf-8') as f:
