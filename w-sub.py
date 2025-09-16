@@ -255,18 +255,43 @@ class NodeProcessor:
             # 测试并选择最优节点
             best_nodes = selector.test_and_select_best_nodes(self.nodes)
             
-            # 生成最优节点订阅文件
-            output_path = self._get_output_path(self.config["OUTPUT_BEST_FILE"])
-            result = selector.generate_best_subscription(best_nodes, output_path)
+            if not best_nodes:
+                logger.warning("没有选择到最优节点，尝试使用原始节点列表")
+                best_nodes = self.nodes[:self.config.get("BEST_NODES_COUNT", 50)]
             
-            # 如果生成失败，使用当前类的方法生成
+            logger.info(f"准备生成优选节点订阅，共{len(best_nodes)}个节点")
+            
+            # 生成最优节点订阅文件 - 主方法
+            output_path = self._get_output_path(self.config["OUTPUT_BEST_FILE"])
+            logger.debug(f"输出路径: {output_path}")
+            
+            # 直接使用当前类的generate_subscription方法，这个方法更可靠
+            result = self.generate_subscription(best_nodes, self.config["OUTPUT_BEST_FILE"])
+            
             if result is None:
-                logger.warning("使用NodeSelector生成失败，尝试使用备用方法")
-                self.generate_subscription(best_nodes, self.config["OUTPUT_BEST_FILE"])
+                logger.error("生成最优节点订阅失败，尝试在当前目录创建文件")
+                # 直接在当前目录创建文件作为最后备用
+                try:
+                    nodes_text = '\n'.join(best_nodes)
+                    subscription_content = base64.b64encode(nodes_text.encode('utf-8')).decode('utf-8')
+                    
+                    fallback_path = os.path.join(os.getcwd(), self.config["OUTPUT_BEST_FILE"])
+                    with open(fallback_path, 'w', encoding='utf-8') as f:
+                        f.write(subscription_content)
+                    
+                    if os.path.exists(fallback_path) and os.path.getsize(fallback_path) > 0:
+                        logger.info(f"已在当前目录生成最优节点订阅: {fallback_path}")
+                    else:
+                        logger.error("在当前目录创建文件也失败")
+                except Exception as e:
+                    logger.error(f"备用方法创建文件失败: {str(e)}")
             
             return best_nodes
         except Exception as e:
-            logger.error(f"生成最优节点订阅失败: {str(e)}")
+            logger.error(f"生成最优节点订阅时发生错误: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            # 返回空列表
             return []
 
 # 在main函数前添加命令行参数解析

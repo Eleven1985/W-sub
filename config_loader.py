@@ -29,13 +29,13 @@ class ConfigLoader:
         """加载配置，优先使用configs/config.txt"""
         config = {
             "SOURCES": [],
-            "TIMEOUT": 5,
+            "TIMEOUT": 8,  # 增加超时时间
             "OUTPUT_ALL_FILE": "subscription_all.txt",
             "OUTPUT_BEST_FILE": "subscription_best.txt",
             "WORKERS": 10,
-            "MAX_RETRY": 2,
+            "MAX_RETRY": 3,  # 增加重试次数
             "BEST_NODES_COUNT": 50,
-            "TEST_TIMEOUT": 3
+            "TEST_TIMEOUT": 4  # 增加测试超时时间
         }
         
         # 尝试多个可能的配置文件路径

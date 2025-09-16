@@ -35,8 +35,15 @@ class NodeSelector:
             # 收集有效结果 - 只保留响应时间小于测试超时的节点
             for node, speed in results:
                 # 只有响应时间小于测试超时时间且不是无限大的节点才被认为有效
-                if speed > 0 and speed < float('inf') and speed < self.test_timeout * 2:
+                if speed > 0 and speed < float('inf'):
                     node_speeds.append((node, speed))
+                    logging.debug(f"节点通过测试，响应时间: {speed:.3f}秒")
+            
+            # 如果没有足够的有效节点，放宽条件
+            if len(node_speeds) < self.best_nodes_count:
+                logging.warning(f"有效节点数量不足{self.best_nodes_count}个({len(node_speeds)}个)，尝试使用备用方法选择节点")
+                # 备用方法：直接返回原始节点列表的一部分
+                return nodes[:self.best_nodes_count]
             
             # 按速度排序（响应时间越短，速度越快）
             node_speeds.sort(key=lambda x: x[1])
@@ -49,8 +56,8 @@ class NodeSelector:
             return best_nodes
         except Exception as e:
             logging.error(f"测试节点时发生错误: {str(e)}")
-            # 如果测试失败，返回空列表而不是原始节点
-            return []
+            # 如果测试失败，返回原始节点列表的一部分作为备用
+            return nodes[:self.best_nodes_count]
     
     def _test_node_speed(self, node):
         """测试单个节点的连接速度"""
@@ -76,7 +83,7 @@ class NodeSelector:
             # 尝试解码可能的base64编码
             try:
                 # 处理常见的节点格式
-                if node.startswith(('vmess://', 'vless://', 'trojan://', 'ss://', 'ssr://')):
+                if node.startswith(('vmess://', 'vless://', 'trojan://', 'ss://', 'ssr://', 'hysteria://', 'tuic://')):
                     scheme, encoded = node.split('://', 1)
                     # 尝试解码base64
                     try:
@@ -84,10 +91,11 @@ class NodeSelector:
                         padding = '=' * ((4 - len(encoded) % 4) % 4)
                         decoded = base64.b64decode(encoded + padding).decode('utf-8', errors='ignore')
                         # 从解码后的内容中提取服务器地址
-                        match = re.search(r'(?:server|add|host)["\':\s]+([a-zA-Z0-9.-]+)', decoded)
+                        match = re.search(r'(?:server|add|host)[:="]\s*([a-zA-Z0-9.-]+)', decoded)
                         if match:
                             return match.group(1)
-                    except:
+                    except Exception as e:
+                        logging.debug(f"解码节点内容失败: {str(e)}")
                         pass
                 
                 # 简单的正则表达式匹配域名或IP（备用方案）
@@ -98,10 +106,22 @@ class NodeSelector:
                     if ':' in server:
                         server = server.split(':')[0]
                     return server
-            except:
+                
+                # 尝试匹配最后一个@符号后面的内容（常见于某些节点格式）
+                match = re.search(r'@([a-zA-Z0-9.-]+)', node)
+                if match:
+                    server = match.group(1)
+                    if ':' in server:
+                        server = server.split(':')[0]
+                    return server
+            except Exception as e:
+                logging.debug(f"提取服务器地址失败: {str(e)}")
                 pass
-        except:
+        except Exception as e:
+            logging.debug(f"处理节点时发生异常: {str(e)}")
             pass
+        
+        # 如果以上方法都失败，返回None
         return None
     
     def generate_best_subscription(self, best_nodes, output_path):
