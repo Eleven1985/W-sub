@@ -104,7 +104,8 @@ class NodeTester:
                 response_time = end_time - start_time
                 return response_time
         except Exception as e:
-            # 忽略测试失败的节点
+            # 忽略测试失败的节点，仅记录调试信息
+            logger.debug(f"测试节点失败: {str(e)}")
             return None
     
     @staticmethod
@@ -113,11 +114,26 @@ class NodeTester:
         try:
             # 处理vmess节点
             if node_url.startswith('vmess://'):
-                # 解码vmess节点信息
-                vmess_data = node_url[8:]
-                decoded = base64.b64decode(vmess_data).decode('utf-8')
-                vmess_json = json.loads(decoded)
-                return vmess_json.get('add'), int(vmess_json.get('port'))
+                try:
+                    vmess_data = node_url[8:]
+                    # 确保base64字符串长度是4的倍数
+                    padding_length = 4 - (len(vmess_data) % 4)
+                    if padding_length < 4:
+                        vmess_data += '=' * padding_length
+                    
+                    decoded = base64.b64decode(vmess_data).decode('utf-8')
+                    vmess_json = json.loads(decoded)
+                    return vmess_json.get('add'), int(vmess_json.get('port'))
+                except:
+                    # 如果标准解析失败，尝试使用更宽松的方式
+                    try:
+                        # 直接在URL中查找可能的IP和端口
+                        ip_port_match = re.search(r'(\d+\.\d+\.\d+\.\d+):(\d+)', node_url)
+                        if ip_port_match:
+                            return ip_port_match.group(1), int(ip_port_match.group(2))
+                    except:
+                        pass
+                    return None
             
             # 处理vless节点
             elif node_url.startswith('vless://'):
@@ -125,6 +141,11 @@ class NodeTester:
                 match = re.search(r'vless://[^@]+@([^:]+):(\d+)', node_url)
                 if match:
                     return match.group(1), int(match.group(2))
+                
+                # 尝试匹配IP地址和端口
+                ip_port_match = re.search(r'(\d+\.\d+\.\d+\.\d+):(\d+)', node_url)
+                if ip_port_match:
+                    return ip_port_match.group(1), int(ip_port_match.group(2))
             
             # 处理trojan节点
             elif node_url.startswith('trojan://'):
@@ -132,6 +153,11 @@ class NodeTester:
                 match = re.search(r'trojan://[^@]+@([^:]+):(\d+)', node_url)
                 if match:
                     return match.group(1), int(match.group(2))
+                
+                # 尝试匹配IP地址和端口
+                ip_port_match = re.search(r'(\d+\.\d+\.\d+\.\d+):(\d+)', node_url)
+                if ip_port_match:
+                    return ip_port_match.group(1), int(ip_port_match.group(2))
             
             # 处理shadowsocks节点
             elif node_url.startswith('shadowsocks://') or node_url.startswith('ss://'):
@@ -148,12 +174,22 @@ class NodeTester:
                             return host, int(port)
                     except:
                         pass
+                
+                # 尝试匹配IP地址和端口
+                ip_port_match = re.search(r'(\d+\.\d+\.\d+\.\d+):(\d+)', node_url)
+                if ip_port_match:
+                    return ip_port_match.group(1), int(ip_port_match.group(2))
             
-            # 尝试通用解析方法
+            # 处理其他类型节点，尝试通用解析方法
             # 查找URL中的host:port模式
             match = re.search(r'@([^:]+):(\d+)', node_url)
             if match:
                 return match.group(1), int(match.group(2))
+            
+            # 尝试匹配IP地址和端口
+            ip_port_match = re.search(r'(\d+\.\d+\.\d+\.\d+):(\d+)', node_url)
+            if ip_port_match:
+                return ip_port_match.group(1), int(ip_port_match.group(2))
             
             return None
         except Exception as e:
@@ -301,12 +337,17 @@ class NodeProcessor:
                     if speed is not None:
                         self.nodes_with_speed.append((node, speed))
                 except Exception as e:
-                    logger.debug(f"测试节点失败: {str(e)}")
+                    logger.debug(f"测试节点异常: {str(e)}")
         
         # 按响应速度排序（时间越短越好）
         self.nodes_with_speed.sort(key=lambda x: x[1])
         
         logger.info(f"成功测试了{len(self.nodes_with_speed)}个节点")
+        
+        # 如果没有成功测试的节点，返回全部节点
+        if not self.nodes_with_speed:
+            logger.warning("所有节点测试失败，将使用所有节点作为备选")
+            return self.nodes
         
         # 选择前N个最快的节点
         best_nodes_count = min(self.config["BEST_NODES_COUNT"], len(self.nodes_with_speed))
@@ -320,20 +361,24 @@ class NodeProcessor:
     
     def generate_subscription(self, nodes, output_file):
         """生成订阅文件"""
-        # 将节点列表转换为字符串
-        nodes_text = '\n'.join(nodes)
-        
-        # Base64编码
-        subscription_content = base64.b64encode(
-            nodes_text.encode('utf-8')
-        ).decode('utf-8')
-        
-        # 保存到文件
-        with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(subscription_content)
-        
-        logger.info(f"订阅已生成并保存到 {output_file}，包含{len(nodes)}个节点")
-        return subscription_content
+        try:
+            # 将节点列表转换为字符串
+            nodes_text = '\n'.join(nodes)
+            
+            # Base64编码
+            subscription_content = base64.b64encode(
+                nodes_text.encode('utf-8')
+            ).decode('utf-8')
+            
+            # 保存到文件
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(subscription_content)
+            
+            logger.info(f"订阅已生成并保存到 {output_file}，包含{len(nodes)}个节点")
+            return subscription_content
+        except Exception as e:
+            logger.error(f"生成订阅文件{output_file}失败: {str(e)}")
+            return None
 
 
 def main():
@@ -356,15 +401,15 @@ def main():
     # 测试节点速度并选择最优节点
     best_nodes = processor.test_and_select_best_nodes()
     
-    if not best_nodes:
-        logger.error("未能找到可用的节点，请检查网络连接")
-        return
-    
     # 生成包含所有节点的订阅文件
     processor.generate_subscription(processor.nodes, config["OUTPUT_ALL_FILE"])
     
-    # 生成包含最优节点的订阅文件
-    processor.generate_subscription(best_nodes, config["OUTPUT_BEST_FILE"])
+    # 生成包含最优节点的订阅文件（即使best_nodes为空，也尝试生成）
+    if best_nodes:
+        processor.generate_subscription(best_nodes, config["OUTPUT_BEST_FILE"])
+    else:
+        logger.warning("没有找到最优节点，将使用所有节点生成最优订阅文件")
+        processor.generate_subscription(processor.nodes, config["OUTPUT_BEST_FILE"])
     
     logger.info("处理完成！")
 

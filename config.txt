@@ -27,18 +27,24 @@ WORKERS=10
 # 获取节点源的重试次数
 MAX_RETRY=2
 
+# 优选节点数量
+BEST_NODES_COUNT=50
+
+# 节点测试超时时间（秒）
+TEST_TIMEOUT=3
+
+# 输出文件名 - 最优节点
+OUTPUT_BEST_FILE=subscription_best.txt
+
+# 其他可选配置（当前未使用）
 # 是否使用国家代码
-USE_COUNTRY_CODE=false
+# USE_COUNTRY_CODE=false
 
 # 是否按国家生成文件
-# 将
-GENERATE_COUNTRY_FILES=ture
-# 修改为
-GENERATE_COUNTRY_FILES=true
+# GENERATE_COUNTRY_FILES=true
 
 # 每个国家文件的最小节点数
-
-MIN_NODES_PER_COUNTRY=5
+# MIN_NODES_PER_COUNTRY=5
 
 
 ## 功能说明
@@ -54,16 +60,6 @@ MIN_NODES_PER_COUNTRY=5
 ## 配置修改建议
 
 为了更好地使用优选功能，您可以在配置文件中添加以下配置项（如果不存在）：
-```
-# 优选节点数量
-BEST_NODES_COUNT=50
-
-# 节点测试超时时间（秒）
-TEST_TIMEOUT=3
-
-# 输出文件名 - 最优节点
-OUTPUT_BEST_FILE=subscription_best.txt
-```
 
 
 
