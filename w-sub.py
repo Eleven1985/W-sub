@@ -6,6 +6,8 @@ w-sub - 节点订阅汇总工具
 1. 从指定URL获取节点配置
 2. 合并多个源的节点
 3. 生成一个订阅文件：包含所有节点
+4. 支持按国家筛选节点（可选）
+5. 支持按国家生成单独的订阅文件（可选）
 """
 import os
 import re
@@ -39,7 +41,10 @@ class ConfigLoader:
             "TIMEOUT": 5,
             "OUTPUT_ALL_FILE": "subscription_all.txt",
             "WORKERS": 10,
-            "MAX_RETRY": 2  # 获取节点源的重试次数
+            "MAX_RETRY": 2,  # 获取节点源的重试次数
+            "USE_COUNTRY_CODE": False,
+            "GENERATE_COUNTRY_FILES": False,
+            "MIN_NODES_PER_COUNTRY": 5
         }
         
         try:
@@ -60,11 +65,14 @@ class ConfigLoader:
                             config[key].append(value)
                         elif key in config:
                             # 根据配置项类型转换值
-                            if key in ["TIMEOUT", "WORKERS", "MAX_RETRY"]:
+                            if key in ["TIMEOUT", "WORKERS", "MAX_RETRY", "MIN_NODES_PER_COUNTRY"]:
                                 try:
                                     config[key] = int(value)
                                 except ValueError:
                                     logger.warning(f"配置项 {key} 的值 {value} 不是有效的数字，使用默认值 {config[key]}")
+                            elif key in ["USE_COUNTRY_CODE", "GENERATE_COUNTRY_FILES"]:
+                                # 转换布尔值
+                                config[key] = value.lower() == 'true'
                             else:
                                 config[key] = value
         
@@ -82,6 +90,7 @@ class NodeProcessor:
         self.valid_nodes_count = 0
         self.failed_nodes_count = 0
         self.debug_info = []
+        self.nodes_by_country = {}
     
     def fetch_nodes(self, url):
         """从指定URL获取节点配置"""
@@ -120,19 +129,37 @@ class NodeProcessor:
             # 清理可能的换行符和空格
             cleaned_content = content.strip().replace('\n', '').replace('\r', '')
             
-            # 检查是否可能是base64编码
-            if re.match(r'^[A-Za-z0-9+/]+[=]{0,2}$', cleaned_content):
-                # 尝试多种可能的填充方式
-                for padding in ['', '=', '==']:
-                    try:
-                        padded_content = cleaned_content + padding
-                        decoded = base64.b64decode(padded_content).decode('utf-8', errors='ignore')
-                        # 验证解码结果是否合理
-                        if len(decoded) > len(content) * 0.5 and any(char in decoded for char in ['vmess://', 'v2ray://', 'trojan://']):
-                            logger.info("成功解码base64内容")
-                            return decoded
-                    except:
-                        continue
+            # 尝试多种可能的解码方式
+            # 1. 直接尝试解码
+            try:
+                decoded = base64.b64decode(cleaned_content, validate=True).decode('utf-8', errors='ignore')
+                if any(char in decoded for char in ['vmess://', 'v2ray://', 'trojan://', 'shadowsocks://', 'vless://']):
+                    logger.info("成功解码base64内容")
+                    return decoded
+            except:
+                pass
+            
+            # 2. 尝试不同的填充方式
+            for padding in ['', '=', '==']:
+                try:
+                    padded_content = cleaned_content + padding
+                    decoded = base64.b64decode(padded_content).decode('utf-8', errors='ignore')
+                    if any(char in decoded for char in ['vmess://', 'v2ray://', 'trojan://', 'shadowsocks://', 'vless://']):
+                        logger.info("成功解码base64内容(使用填充)")
+                        return decoded
+                except:
+                    continue
+            
+            # 3. 尝试每4个字符一组进行解码
+            for i in range(4):
+                try:
+                    adjusted_content = cleaned_content[i:]
+                    decoded = base64.b64decode(adjusted_content).decode('utf-8', errors='ignore')
+                    if any(char in decoded for char in ['vmess://', 'v2ray://', 'trojan://', 'shadowsocks://', 'vless://']):
+                        logger.info(f"成功解码base64内容(偏移{i})")
+                        return decoded
+                except:
+                    continue
         except Exception as e:
             logger.error(f"解码base64内容时发生错误: {str(e)}")
         
@@ -141,13 +168,17 @@ class NodeProcessor:
     
     def _extract_nodes(self, content):
         """从内容中提取节点链接"""
-        # 支持的节点类型正则表达式
+        # 支持的节点类型正则表达式，增加了vless等新型节点类型
         patterns = [
             r'(vmess://[^\s]+)',
             r'(v2ray://[^\s]+)',
             r'(trojan://[^\s]+)',
             r'(shadowsocks://[^\s]+)',
             r'(shadowsocksr://[^\s]+)',
+            r'(vless://[^\s]+)',
+            r'(ss://[^\s]+)',
+            r'(ssr://[^\s]+)',
+            r'(trojan-go://[^\s]+)'
         ]
         
         nodes = []
@@ -175,6 +206,26 @@ class NodeProcessor:
         # 去重
         self.nodes = list(set(all_nodes))
         logger.info(f"合并后共获取到{len(self.nodes)}个唯一节点")
+        
+        # 如果需要按国家分组，则处理节点
+        if self.config["USE_COUNTRY_CODE"] or self.config["GENERATE_COUNTRY_FILES"]:
+            self._group_nodes_by_country()
+    
+    def _group_nodes_by_country(self):
+        """按国家代码对节点进行分组"""
+        # 简单的国家代码识别（实际应用中可能需要更复杂的解析）
+        country_pattern = re.compile(r'#([A-Z]{2})')
+        
+        for node in self.nodes:
+            # 尝试从节点名称中提取国家代码
+            match = country_pattern.search(node)
+            if match:
+                country_code = match.group(1)
+                if country_code not in self.nodes_by_country:
+                    self.nodes_by_country[country_code] = []
+                self.nodes_by_country[country_code].append(node)
+        
+        logger.info(f"按国家代码分组后，得到{len(self.nodes_by_country)}个国家/地区的节点")
     
     def generate_subscription(self, nodes, output_file):
         """生成订阅文件"""
@@ -192,6 +243,22 @@ class NodeProcessor:
         
         logger.info(f"订阅已生成并保存到 {output_file}，包含{len(nodes)}个节点")
         return subscription_content
+    
+    def generate_country_subscriptions(self):
+        """按国家生成单独的订阅文件"""
+        if not self.config["GENERATE_COUNTRY_FILES"]:
+            return
+        
+        output_dir = "country_subscriptions"
+        os.makedirs(output_dir, exist_ok=True)
+        
+        for country_code, nodes in self.nodes_by_country.items():
+            if len(nodes) >= self.config["MIN_NODES_PER_COUNTRY"]:
+                output_file = os.path.join(output_dir, f"subscription_{country_code}.txt")
+                self.generate_subscription(nodes, output_file)
+
+
+
 
 def main():
     logger.info("=== w-sub 节点订阅汇总工具启动 ===")
@@ -212,6 +279,9 @@ def main():
     
     # 生成包含所有节点的订阅文件
     processor.generate_subscription(processor.nodes, config["OUTPUT_ALL_FILE"])
+    
+    # 如果配置了按国家生成文件，则执行
+    processor.generate_country_subscriptions()
     
     logger.info("处理完成！")
 

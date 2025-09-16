@@ -31,7 +31,10 @@ MAX_RETRY=2
 USE_COUNTRY_CODE=false
 
 # 是否按国家生成文件
+# 将
 GENERATE_COUNTRY_FILES=ture
+# 修改为
+GENERATE_COUNTRY_FILES=true
 
 # 每个国家文件的最小节点数
 
