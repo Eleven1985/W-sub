@@ -1,6 +1,5 @@
 # w-sub 配置文件
-
-# 直接写URL，无需前缀
+# 直接添加节点源URL
 https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/V2Ray-Config-By-EbraSha.txt
 https://raw.githubusercontent.com/roosterkid/openproxylist/refs/heads/main/V2RAY_RAW.txt
 https://raw.githubusercontent.com/Awmiroosen/awmirx-v2ray/refs/heads/main/blob/main/v2-sub.txt
@@ -15,24 +14,3 @@ https://raw.githubusercontent.com/sinavm/SVM/refs/heads/main/subscriptions/xray/
 https://raw.githubusercontent.com/Joker-funland/V2ray-configs/refs/heads/main/vless.txt
 https://raw.githubusercontent.com/itsyebekhe/PSG/refs/heads/main/subscriptions/xray/base64/vless
 https://raw.githubusercontent.com/SonzaiEkkusu/V2RayDumper/refs/heads/main/config.txt
-
-# 请求超时时间（秒）
-TIMEOUT=5
-
-# 输出文件名 - 所有节点
-OUTPUT_ALL_FILE=subscription_all.txt
-
-# 并发工作线程数
-WORKERS=10
-
-# 获取节点源的重试次数
-MAX_RETRY=2
-
-# 优选节点数量
-BEST_NODES_COUNT=50
-
-# 节点测试超时时间（秒）
-TEST_TIMEOUT=3
-
-# 输出文件名 - 最优节点
-OUTPUT_BEST_FILE=subscription_best.txt
