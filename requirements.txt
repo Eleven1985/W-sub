@@ -1,2 +1,3 @@
-requests
-python-dateutil
+requests>=2.25.1
+
+# 如果您的环境需要额外的依赖，可以添加在这里
