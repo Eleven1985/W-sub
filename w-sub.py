@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 class ConfigLoader:
     """配置加载器，从配置文件读取设置"""
     @staticmethod
-    def load_config(config_file="config.txt"):
+    def load_config(config_file=None):
         config = {
             "SOURCES": [],
             "TIMEOUT": 5,
@@ -49,6 +49,14 @@ class ConfigLoader:
             "BEST_NODES_COUNT": 50,  # 优选节点数量
             "TEST_TIMEOUT": 3  # 节点测试超时时间（秒）
         }
+        
+        # 如果未指定配置文件路径，先尝试从configs文件夹查找
+        if config_file is None:
+            if os.path.exists("configs/config.txt"):
+                config_file = "configs/config.txt"
+            else:
+                config_file = "config.txt"
+                logger.info("未在configs文件夹找到配置文件，使用当前目录的config.txt")
         
         try:
             with open(config_file, 'r', encoding='utf-8') as f:
@@ -75,13 +83,13 @@ class ConfigLoader:
                                     logger.warning(f"配置项 {key} 的值 {value} 不是有效的数字，使用默认值 {config[key]}")
                             else:
                                 config[key] = value
+                    # 简化格式：直接识别URL（不以#开头且不包含=号）
+                    elif re.match(r'^https?://', line):
+                        config["SOURCES"].append(line)
         
-            logger.info(f"成功加载配置，共 {len(config['SOURCES'])} 个节点源")
-            return config
-        except Exception as e:
-            logger.error(f"加载配置文件失败: {str(e)}")
-            logger.info("使用默认配置继续执行")
-            return config
+        logger.info(f"成功加载配置文件: {config_file}")
+        logger.info(f"成功加载配置，共 {len(config['SOURCES'])} 个节点源")
+        return config
 
 class NodeProcessor:
     def __init__(self, config, output_dir=None):

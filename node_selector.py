@@ -214,6 +214,12 @@ class NodeSelector:
     def generate_best_subscription(self, nodes, output_file):
         """生成最优节点订阅文件"""
         try:
+            # 确保输出目录存在
+            output_dir = os.path.dirname(output_file)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+                logger.info(f"[NodeSelector] 已创建输出目录: {output_dir}")
+                
             logger.info(f"[NodeSelector] 准备生成最优节点订阅文件: {output_file}，包含{len(nodes)}个节点")
             
             # 将节点列表转换为字符串
@@ -234,6 +240,11 @@ class NodeSelector:
             logger.error(f"[NodeSelector] 生成最优节点订阅文件{output_file}失败: {str(e)}")
             # 尝试创建空文件，确保文件存在
             try:
+                # 再次确保目录存在
+                output_dir = os.path.dirname(output_file)
+                if output_dir and not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+                
                 with open(output_file, 'w', encoding='utf-8') as f:
                     f.write('')
                 logger.warning(f"[NodeSelector] 已创建空的{output_file}文件")
