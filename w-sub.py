@@ -34,19 +34,17 @@ from config_loader import ConfigLoader
 from node_merger import NodeMerger
 from node_selector import NodeSelector
 
-# 修改NodeProcessor类的初始化方法
 class NodeProcessor:
+    """节点处理器，负责处理节点和生成订阅文件"""
+    
     def __init__(self, config, output_dir=None):
         self.config = config
         self.nodes = []
-        # 设置主输出目录
-        self.output_dir = output_dir or os.path.join(os.getcwd(), "subscriptions")
-        # 创建专门存放主要订阅文件的文件夹
-        self.main_subs_dir = os.path.join(self.output_dir, "main_subscriptions")
+        # 设置输出目录，默认在当前目录下创建subscriptions文件夹
+        self.output_dir = output_dir or "subscriptions"
         # 确保输出目录存在
         self._ensure_output_dir()
-
-    # 添加_ensure_output_dir方法的完整实现
+    
     def _ensure_output_dir(self):
         """确保输出目录存在"""
         # 使用绝对路径
@@ -64,26 +62,12 @@ class NodeProcessor:
             # 尝试使用当前目录作为备选
             self.output_dir = os.getcwd()
             logger.warning(f"将使用当前目录作为输出目录: {self.output_dir}")
-
-    # 修改_get_output_path方法，为主要订阅文件提供特殊处理
+    
     def _get_output_path(self, filename):
         """获取文件的完整输出路径"""
-        # 检查是否是主要订阅文件
-        if filename in [self.config["OUTPUT_ALL_FILE"], self.config["OUTPUT_BEST_FILE"]]:
-            # 确保主订阅文件夹存在
-            if not os.path.exists(self.main_subs_dir):
-                try:
-                    os.makedirs(self.main_subs_dir, exist_ok=True)
-                    logger.info(f"已创建主订阅文件夹: {self.main_subs_dir}")
-                except Exception as e:
-                    logger.error(f"创建主订阅文件夹失败: {str(e)}")
-                    # 回退到输出目录
-                    return os.path.join(self.output_dir, filename)
-            return os.path.join(self.main_subs_dir, filename)
-        # 其他文件使用常规输出目录
         return os.path.join(self.output_dir, filename)
-
-    # 增强generate_subscription方法的文件验证逻辑
+    
+    # 修改NodeProcessor类的generate_subscription方法
     def generate_subscription(self, nodes, output_file):
         """生成订阅文件"""
         try:
@@ -91,12 +75,9 @@ class NodeProcessor:
                 logger.warning(f"没有节点可生成订阅: {output_file}")
                 return None
             
-            # 记录生成文件的操作
-            logger.info(f"准备生成订阅文件: {output_file}，包含{len(nodes)}个节点")
-            
             # 获取完整的输出路径
             full_output_path = self._get_output_path(output_file)
-            logger.info(f"输出路径: {full_output_path}")
+            logger.info(f"准备生成订阅文件: {full_output_path}，包含{len(nodes)}个节点")
             
             # 确保输出目录存在
             output_dir = os.path.dirname(full_output_path)
@@ -155,8 +136,77 @@ class NodeProcessor:
             import traceback
             traceback.print_exc()
             return None
-
-    # 修改generate_best_nodes_subscription方法，确保使用_get_output_path
+    
+    def categorize_nodes_by_type(self):
+        """按节点类型分类节点"""
+        categorized_nodes = {
+            'vmess': [],
+            'v2ray': [],
+            'trojan': [],
+            'shadowsocks': [],
+            'shadowsocksr': [],
+            'vless': [],
+            'ss': [],
+            'ssr': [],
+            'hysteria': [],
+            'other': []
+        }
+        
+        for node in self.nodes:
+            if node.startswith('vmess://'):
+                categorized_nodes['vmess'].append(node)
+            elif node.startswith('v2ray://'):
+                categorized_nodes['v2ray'].append(node)
+            elif node.startswith('trojan://') or node.startswith('trojan-go://'):
+                categorized_nodes['trojan'].append(node)
+            elif node.startswith('shadowsocks://'):
+                categorized_nodes['shadowsocks'].append(node)
+            elif node.startswith('shadowsocksr://'):
+                categorized_nodes['shadowsocksr'].append(node)
+            elif node.startswith('vless://'):
+                categorized_nodes['vless'].append(node)
+            elif node.startswith('ss://'):
+                categorized_nodes['ss'].append(node)
+            elif node.startswith('ssr://'):
+                categorized_nodes['ssr'].append(node)
+            elif node.startswith('hysteria://'):
+                categorized_nodes['hysteria'].append(node)
+            else:
+                categorized_nodes['other'].append(node)
+        
+        # 记录分类结果
+        for node_type, nodes_list in categorized_nodes.items():
+            if nodes_list:
+                logger.info(f"{node_type.upper()} 类型节点数量: {len(nodes_list)}")
+        
+        return categorized_nodes
+    
+    def generate_category_subscriptions(self):
+        """为每种节点类型生成订阅文件"""
+        categorized_nodes = self.categorize_nodes_by_type()
+        
+        # 定义节点类型到文件名的映射
+        type_to_filename = {
+            'vmess': 'subscription_vmess.txt',
+            'v2ray': 'subscription_v2ray.txt',
+            'trojan': 'subscription_trojan.txt',
+            'shadowsocks': 'subscription_shadowsocks.txt',
+            'shadowsocksr': 'subscription_shadowsocksr.txt',
+            'vless': 'subscription_vless.txt',
+            'ss': 'subscription_ss.txt',
+            'ssr': 'subscription_ssr.txt',
+            'hysteria': 'subscription_hysteria.txt',
+            'other': 'subscription_other.txt'
+        }
+        
+        # 为每种类型生成订阅文件
+        for node_type, nodes_list in categorized_nodes.items():
+            if nodes_list:
+                filename = type_to_filename[node_type]
+                self.generate_subscription(nodes_list, filename)
+        
+        logger.info("所有节点类型的订阅文件已生成完成")
+    
     def generate_best_nodes_subscription(self):
         """生成最优节点订阅"""
         try:
@@ -166,20 +216,18 @@ class NodeProcessor:
             # 测试并选择最优节点
             best_nodes = selector.test_and_select_best_nodes(self.nodes)
             
-            if not best_nodes:
-                logger.warning("没有选择到最优节点，尝试使用原始节点列表")
-                best_nodes = self.nodes[:self.config.get("BEST_NODES_COUNT", 50)]
+            # 生成最优节点订阅文件
+            output_path = self._get_output_path(self.config["OUTPUT_BEST_FILE"])
+            result = selector.generate_best_subscription(best_nodes, output_path)
             
-            logger.info(f"准备生成优选节点订阅，共{len(best_nodes)}个节点")
+            # 如果生成失败，使用当前类的方法生成
+            if result is None:
+                logger.warning("使用NodeSelector生成失败，尝试使用备用方法")
+                self.generate_subscription(best_nodes, self.config["OUTPUT_BEST_FILE"])
             
-            # 直接使用generate_subscription方法生成文件
-            return self.generate_subscription(best_nodes, self.config["OUTPUT_BEST_FILE"])
-            
+            return best_nodes
         except Exception as e:
-            logger.error(f"生成最优节点订阅时发生错误: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            # 返回空列表
+            logger.error(f"生成最优节点订阅失败: {str(e)}")
             return []
 
 # 在main函数前添加命令行参数解析
