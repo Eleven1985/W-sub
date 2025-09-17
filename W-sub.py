@@ -74,11 +74,17 @@ def main():
     # 添加命令行参数解析
     parser = argparse.ArgumentParser(description='W-sub 节点订阅汇总工具')
     parser.add_argument('--output', '-o', default='subscriptions_output', help='输出目录，默认为subscriptions_output')
+    parser.add_argument('--loglevel', default='INFO', help='日志级别，可选值：DEBUG, INFO, WARNING, ERROR')
     args = parser.parse_args()
+    
+    # 设置日志级别
+    log_level = getattr(logging, args.loglevel.upper(), logging.INFO)
+    logger.setLevel(log_level)
     
     logger.info("=== W-sub 节点订阅汇总工具启动 ===")
     logger.info(f"当前时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"输出目录: {args.output}")
+    logger.info(f"日志级别: {args.loglevel}")
     
     try:
         # 加载配置
