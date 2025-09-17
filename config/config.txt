@@ -12,3 +12,32 @@ https://raw.githubusercontent.com/YFTree/ClashNodes/refs/heads/main/V2Ray/4.txt
 https://raw.githubusercontent.com/free18/v2ray/refs/heads/main/v.txt
 https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/splitted/mixed
 
+
+# 高级配置选项
+
+# 黑名单域名（逗号分隔）
+# BLACKLIST_DOMAINS=example.com,test.com
+
+# 黑名单IP（逗号分隔）
+# BLACKLIST_IPS=1.1.1.1,8.8.8.8
+
+# 偏好协议（逗号分隔，只保留指定协议的节点）
+# PREFERRED_PROTOCOLS=vmess,vless,trojan
+
+# 是否启用节点连通性检查（true/false）
+# CHECK_CONNECTIVITY=false
+
+# 连通性检查超时时间（秒）
+# CONNECTIVITY_TIMEOUT=3
+
+# 网络请求超时时间（秒）
+# TIMEOUT=5
+
+# 最大重试次数
+# MAX_RETRY=2
+
+# 并发工作线程数
+# WORKERS=10
+
+# 输出文件名
+# OUTPUT_ALL_FILE=subscription_all.txt
