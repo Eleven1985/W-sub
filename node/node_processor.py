@@ -351,6 +351,7 @@ class NodeProcessor:
         logging.info(f"串行获取完成，共获取 {len(all_nodes)} 个唯一节点")
         return all_nodes
     
+    # 找到 generate_subscription_file 方法并修改
     def generate_subscription_file(self, nodes, output_file):
         """生成订阅文件"""
         try:
@@ -360,8 +361,8 @@ class NodeProcessor:
             
             logging.info(f"准备生成订阅文件: {output_file}，包含{len(nodes)}个节点")
             
-            # 将节点列表转换为字符串并编码
-            nodes_text = '\n'.join(nodes)
+            # 将节点列表转换为字符串并编码，使用\r\n作为行分隔符以兼容v2ray
+            nodes_text = '\r\n'.join(nodes)
             subscription_content = base64.b64encode(nodes_text.encode('utf-8')).decode('utf-8')
             
             # 保存到文件
