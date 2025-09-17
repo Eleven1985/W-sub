@@ -5,6 +5,10 @@ https://raw.githubusercontent.com/MohsenReyhani/vless-subscriptions/refs/heads/m
 https://raw.githubusercontent.com/YFTree/ClashNodes/refs/heads/main/V2Ray/4.txt
 https://raw.githubusercontent.com/R3ZARAHIMI/tg-v2ray-configs-every2h/refs/heads/main/Config_jo.txt
 https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/refs/heads/main/subscriptions/v2ray/all_sub.txt
+https://raw.githubusercontent.com/M-Mashreghi/Free-V2ray-Collector/refs/heads/main/All_Configs_Sub.txt
+https://cdn.jsdelivr.net/gh/xiaoji235/airport-free/v2ray.txt
+https://cdn.jsdelivr.net/gh/xiaoji235/airport-free/v2ray/v2rayshare.txt
+https://raw.githubusercontent.com/itsyebekhe/PSG/refs/heads/main/config.txt
 
 
 # 高级配置选项
@@ -35,6 +39,7 @@ https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/refs/heads/main/su
 
 # 输出文件名
 # OUTPUT_ALL_FILE=subscription_all.txt
+
 
 
 
