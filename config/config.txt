@@ -7,5 +7,3 @@ https://raw.githubusercontent.com/R3ZARAHIMI/tg-v2ray-configs-every2h/refs/heads
 https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/refs/heads/main/subscriptions/v2ray/all_sub.txt
 https://cdn.jsdelivr.net/gh/xiaoji235/airport-free/v2ray.txt
 https://cdn.jsdelivr.net/gh/xiaoji235/airport-free/v2ray/v2rayshare.txt
-https://raw.githubusercontent.com/itsyebekhe/PSG/refs/heads/main/config.txt
-
