@@ -75,6 +75,7 @@ def main():
     parser = argparse.ArgumentParser(description='W-sub 节点订阅汇总工具')
     parser.add_argument('--output', '-o', default='subscriptions_output', help='输出目录，默认为subscriptions_output')
     parser.add_argument('--loglevel', default='INFO', help='日志级别，可选值：DEBUG, INFO, WARNING, ERROR')
+    parser.add_argument('--check-connectivity', action='store_true', help='启用节点连通性检查')
     args = parser.parse_args()
     
     # 设置日志级别
@@ -85,11 +86,17 @@ def main():
     logger.info(f"当前时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"输出目录: {args.output}")
     logger.info(f"日志级别: {args.loglevel}")
+    if args.check_connectivity:
+        logger.info("启用节点连通性检查")
     
     try:
         # 加载配置
         config_loader = ConfigLoader()
         config = config_loader.load_config()
+        
+        # 如果命令行中指定了连通性检查，则覆盖配置文件中的设置
+        if args.check_connectivity:
+            config["CHECK_CONNECTIVITY"] = True
         
         # 创建订阅管理器实例
         manager = SubscriptionManager(config, args.output)
