@@ -109,3 +109,60 @@
 2025-09-17 05:14:32,085 - INFO - 订阅已生成: subscriptions_output/subscription_all.txt，大小: 1330880字节
 2025-09-17 05:14:32,085 - INFO - === W-sub 节点订阅汇总工具运行完成 ===
 2025-09-17 05:14:32,085 - INFO - 所有节点处理完成，共生成3937个节点的订阅
+2025-09-17 05:28:15,830 - INFO - === W-sub 节点订阅汇总工具启动 ===
+2025-09-17 05:28:15,830 - INFO - 当前时间: 2025-09-17 05:28:15
+2025-09-17 05:28:15,830 - INFO - 输出目录: subscriptions_output
+2025-09-17 05:28:15,830 - INFO - 日志级别: INFO
+2025-09-17 05:28:15,830 - INFO - 尝试加载配置文件: /home/runner/work/W-sub/W-sub/config/config.txt
+2025-09-17 05:28:15,830 - INFO - 成功加载配置文件: /home/runner/work/W-sub/W-sub/config/config.txt
+2025-09-17 05:28:15,830 - INFO - 成功加载配置，共 19 个节点源
+2025-09-17 05:28:15,830 - INFO - 开始合并 19 个节点源
+2025-09-17 05:28:15,831 - INFO - 正在获取节点源: https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/9.txt (尝试 1/3)
+2025-09-17 05:28:15,831 - INFO - 正在获取节点源: https://raw.githubusercontent.com/irfreedom/Vpn-fail/refs/heads/main/subscription/base64 (尝试 1/3)
+2025-09-17 05:28:15,832 - INFO - 正在获取节点源: https://raw.githubusercontent.com/Ruk1ng001/freeSub/refs/heads/main/v2ray (尝试 1/3)
+2025-09-17 05:28:15,832 - INFO - 正在获取节点源: https://raw.githubusercontent.com/ggborr/FREEE-VPN/refs/heads/main/8V2 (尝试 1/3)
+2025-09-17 05:28:15,837 - INFO - 正在获取节点源: https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_base64_Sub.txt (尝试 1/3)
+2025-09-17 05:28:15,839 - INFO - 正在获取节点源: https://raw.githubusercontent.com/MohsenReyhani/vless-subscriptions/refs/heads/main/sub.txt (尝试 1/3)
+2025-09-17 05:28:15,842 - INFO - 正在获取节点源: https://raw.githubusercontent.com/YFTree/ClashNodes/refs/heads/main/V2Ray/4.txt (尝试 1/3)
+2025-09-17 05:28:15,843 - INFO - 正在获取节点源: https://raw.githubusercontent.com/free18/v2ray/refs/heads/main/v.txt (尝试 1/3)
+2025-09-17 05:28:15,845 - INFO - 正在获取节点源: https://raw.githubusercontent.com/ts-sf/fly/refs/heads/main/v2 (尝试 1/3)
+2025-09-17 05:28:15,846 - INFO - 正在获取节点源: https://raw.githubusercontent.com/ccpthisbigdog/freedomchina/refs/heads/main/subdom.txt (尝试 1/3)
+2025-09-17 05:28:16,066 - INFO - 成功从 https://raw.githubusercontent.com/free18/v2ray/refs/heads/main/v.txt 获取 29 个节点
+2025-09-17 05:28:16,067 - INFO - 正在获取节点源: https://raw.githubusercontent.com/Barabama/FreeNodes/main/nodes/ndnode.txt (尝试 1/3)
+2025-09-17 05:28:16,086 - INFO - 成功从 https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/9.txt 获取 65 个节点
+2025-09-17 05:28:16,087 - INFO - 正在获取节点源: https://raw.githubusercontent.com/Barabama/FreeNodes/main/nodes/nodev2ray.txt (尝试 1/3)
+2025-09-17 05:28:16,091 - INFO - 成功从 https://raw.githubusercontent.com/Ruk1ng001/freeSub/refs/heads/main/v2ray 获取 18 个节点
+2025-09-17 05:28:16,092 - INFO - 正在获取节点源: https://raw.githubusercontent.com/Barabama/FreeNodes/main/nodes/v2rayshare.txt (尝试 1/3)
+2025-09-17 05:28:16,098 - INFO - 成功从 https://raw.githubusercontent.com/ts-sf/fly/refs/heads/main/v2 获取 34 个节点
+2025-09-17 05:28:16,099 - INFO - 正在获取节点源: https://raw.githubusercontent.com/azatabd/v2ray_fetch/refs/heads/main/vless.txt (尝试 1/3)
+2025-09-17 05:28:16,104 - INFO - 成功从 https://raw.githubusercontent.com/ggborr/FREEE-VPN/refs/heads/main/8V2 获取 9 个节点
+2025-09-17 05:28:16,105 - INFO - 正在获取节点源: https://raw.githubusercontent.com/azatabd/v2ray_fetch/refs/heads/main/trojan.txt (尝试 1/3)
+2025-09-17 05:28:16,110 - INFO - 成功从 https://raw.githubusercontent.com/MohsenReyhani/vless-subscriptions/refs/heads/main/sub.txt 获取 5 个节点
+2025-09-17 05:28:16,111 - INFO - 正在获取节点源: https://raw.githubusercontent.com/3yed-61/V2rayCollector/refs/heads/main/sub/vmess (尝试 1/3)
+2025-09-17 05:28:16,115 - INFO - 成功从 https://raw.githubusercontent.com/YFTree/ClashNodes/refs/heads/main/V2Ray/4.txt 获取 56 个节点
+2025-09-17 05:28:16,116 - INFO - 正在获取节点源: https://raw.githubusercontent.com/R3ZARAHIMI/tg-v2ray-configs-every2h/refs/heads/main/Config_jo.txt (尝试 1/3)
+2025-09-17 05:28:16,146 - INFO - 成功从 https://raw.githubusercontent.com/irfreedom/Vpn-fail/refs/heads/main/subscription/base64 获取 43 个节点
+2025-09-17 05:28:16,154 - INFO - 正在获取节点源: https://raw.githubusercontent.com/pachangcheng/mianfeijiedian/refs/heads/main/should.txt (尝试 1/3)
+2025-09-17 05:28:16,192 - INFO - 成功从 https://raw.githubusercontent.com/Barabama/FreeNodes/main/nodes/ndnode.txt 获取 17 个节点
+2025-09-17 05:28:16,198 - INFO - 正在获取节点源: https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/refs/heads/main/subscriptions/v2ray/all_sub.txt (尝试 1/3)
+2025-09-17 05:28:16,223 - INFO - 成功从 https://raw.githubusercontent.com/ccpthisbigdog/freedomchina/refs/heads/main/subdom.txt 获取 20 个节点
+2025-09-17 05:28:16,272 - INFO - 成功从 https://raw.githubusercontent.com/Barabama/FreeNodes/main/nodes/v2rayshare.txt 获取 10 个节点
+2025-09-17 05:28:16,309 - INFO - 成功从 https://raw.githubusercontent.com/3yed-61/V2rayCollector/refs/heads/main/sub/vmess 获取 28 个节点
+2025-09-17 05:28:16,323 - INFO - 成功从 https://raw.githubusercontent.com/R3ZARAHIMI/tg-v2ray-configs-every2h/refs/heads/main/Config_jo.txt 获取 29 个节点
+2025-09-17 05:28:16,360 - INFO - 成功从 https://raw.githubusercontent.com/azatabd/v2ray_fetch/refs/heads/main/trojan.txt 获取 45 个节点
+2025-09-17 05:28:16,374 - INFO - 成功从 https://raw.githubusercontent.com/pachangcheng/mianfeijiedian/refs/heads/main/should.txt 获取 34 个节点
+2025-09-17 05:28:16,390 - INFO - 成功从 https://raw.githubusercontent.com/Barabama/FreeNodes/main/nodes/nodev2ray.txt 获取 2 个节点
+2025-09-17 05:28:16,631 - INFO - 成功从 https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_base64_Sub.txt 获取 1497 个节点
+2025-09-17 05:28:16,709 - INFO - 成功从 https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/refs/heads/main/subscriptions/v2ray/all_sub.txt 获取 3454 个节点
+2025-09-17 05:28:16,739 - WARNING - 从 https://raw.githubusercontent.com/azatabd/v2ray_fetch/refs/heads/main/vless.txt 获取内容，但未能提取到节点
+2025-09-17 05:28:16,739 - INFO - 将在重试 https://raw.githubusercontent.com/azatabd/v2ray_fetch/refs/heads/main/vless.txt
+2025-09-17 05:28:16,739 - INFO - 正在获取节点源: https://raw.githubusercontent.com/azatabd/v2ray_fetch/refs/heads/main/vless.txt (尝试 2/3)
+2025-09-17 05:28:16,912 - WARNING - 从 https://raw.githubusercontent.com/azatabd/v2ray_fetch/refs/heads/main/vless.txt 获取内容，但未能提取到节点
+2025-09-17 05:28:16,913 - INFO - 将在重试 https://raw.githubusercontent.com/azatabd/v2ray_fetch/refs/heads/main/vless.txt
+2025-09-17 05:28:16,913 - INFO - 正在获取节点源: https://raw.githubusercontent.com/azatabd/v2ray_fetch/refs/heads/main/vless.txt (尝试 3/3)
+2025-09-17 05:28:17,079 - WARNING - 从 https://raw.githubusercontent.com/azatabd/v2ray_fetch/refs/heads/main/vless.txt 获取内容，但未能提取到节点
+2025-09-17 05:28:17,105 - INFO - 节点合并完成，共获取 3937 个唯一节点
+2025-09-17 05:28:17,107 - INFO - 准备生成订阅文件: subscriptions_output/subscription_all.txt，包含3937个节点
+2025-09-17 05:28:17,114 - INFO - 订阅已生成: subscriptions_output/subscription_all.txt，大小: 1330776字节
+2025-09-17 05:28:17,114 - INFO - === W-sub 节点订阅汇总工具运行完成 ===
+2025-09-17 05:28:17,114 - INFO - 所有节点处理完成，共生成3937个节点的订阅
