@@ -1,17 +1,27 @@
-## 图形项目结构
+# W-sub
 
-## 图形使用方法
+节点订阅汇总工具，用于从多个源获取节点配置，去重，合并，并生成订阅文件。
 
-### 1. 安装依赖
+## 功能特点
 
-```bash
-pip install -r requirements.txt
-```
+- 从指定URL获取节点配置
+- 合并多个源的节点
+- 自动去重
+- 支持Base64解码
+- 并发获取提高效率
+- 生成订阅文件到指定目录
+
+## 使用方法
+
+1. 确保安装了Python 3及所需依赖：
+   ```bash
+   pip install -r requirements.txt
+   ```
 
 ### 2. 运行程序
 
 ```bash
-python w-sub.py
+python W-sub.py
 ```
 
 ## 注意事项
