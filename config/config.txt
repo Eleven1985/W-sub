@@ -10,7 +10,6 @@ https://raw.githubusercontent.com/free18/v2ray/refs/heads/main/v.txt
 https://raw.githubusercontent.com/ts-sf/fly/refs/heads/main/v2
 https://raw.githubusercontent.com/ccpthisbigdog/freedomchina/refs/heads/main/subdom.txt
 https://raw.githubusercontent.com/Barabama/FreeNodes/main/nodes/ndnode.txt
-https://raw.githubusercontent.com/azatabd/v2ray_fetch/refs/heads/main/vless.txt
 https://raw.githubusercontent.com/3yed-61/V2rayCollector/refs/heads/main/sub/vmess
 https://raw.githubusercontent.com/R3ZARAHIMI/tg-v2ray-configs-every2h/refs/heads/main/Config_jo.txt
 https://raw.githubusercontent.com/pachangcheng/mianfeijiedian/refs/heads/main/should.txt
@@ -45,6 +44,7 @@ https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/refs/heads/main/su
 
 # 输出文件名
 # OUTPUT_ALL_FILE=subscription_all.txt
+
 
 
 
