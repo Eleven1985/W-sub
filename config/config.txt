@@ -7,3 +7,7 @@ https://raw.githubusercontent.com/R3ZARAHIMI/tg-v2ray-configs-every2h/refs/heads
 https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/refs/heads/main/subscriptions/v2ray/all_sub.txt
 https://cdn.jsdelivr.net/gh/xiaoji235/airport-free/v2ray.txt
 https://cdn.jsdelivr.net/gh/xiaoji235/airport-free/v2ray/v2rayshare.txt
+https://raw.githubusercontent.com/V2RayRoot/V2RayConfig/refs/heads/main/Config/vless.txt
+https://raw.githubusercontent.com/drunksoul2021/vless-sub/refs/heads/main/list_raw.txt
+https://raw.githubusercontent.com/mohamadfg-dev/telegram-v2ray-configs-collector/refs/heads/main/category/vless.txt
+https://raw.githubusercontent.com/Argh94/SubSync/refs/heads/main/Hysteria2.txt
